@@ -137,7 +137,8 @@ let SUBMISSIONS: Submission[] = [
 
 // --- HELPER COMPONENTS ---
 
-const Sidebar: React.FC<{ user: User | null; onSwitchUser: (user: User) => void; activeView: View; setActiveView: (view: View) => void; isOpen: boolean; }> = ({ user, onSwitchUser, activeView, setActiveView, isOpen }) => {
+// const Sidebar: React.FC<{ user: User | null; onSwitchUser: (user: User) => void; activeView: View; setActiveView: (view: View) => void; isOpen: boolean; }> = ({ user, onSwitchUser, activeView, setActiveView, isOpen }) => {
+const Sidebar: React.FC<{ activeView: View; setActiveView: (view: View) => void; isOpen: boolean; }> = ({ activeView, setActiveView, isOpen }) => {
   const navItems = [
     { name: 'Overview', icon: HomeIcon },
     { name: 'Events', icon: CalendarIcon },
@@ -477,13 +478,19 @@ const SubmissionModal: React.FC<{
   );
 };
 
+// const NewSubmissionModal: React.FC<{
+//   visible: boolean;
+//   onHide: () => void;
+//   event: Event | null;
+//   user: User;
+//   onSubmit: (submissionData: Submission['data']) => void;
+// }> = ({ visible, onHide, event, user, onSubmit }) => {
 const NewSubmissionModal: React.FC<{
-  visible: boolean;
-  onHide: () => void;
-  event: Event | null;
-  user: User;
-  onSubmit: (submissionData: Submission['data']) => void;
-}> = ({ visible, onHide, event, user, onSubmit }) => {
+    visible: boolean;
+    onHide: () => void;
+    event: Event | null;
+    onSubmit: (submissionData: Submission['data']) => void;
+}> = ({ visible, onHide, event, onSubmit }) => {
   const [link, setLink] = React.useState('');
   const [text, setText] = React.useState('');
   const [quantity, setQuantity] = React.useState(1);
@@ -769,7 +776,8 @@ export default function App() {
 
   return (
     <div className="bg-slate-50 min-h-screen font-sans text-slate-800 flex relative">
-      <Sidebar user={currentUser} onSwitchUser={handleUserSwitch} activeView={activeView} setActiveView={setActiveView} isOpen={isSidebarOpen} />
+      {/* <Sidebar user={currentUser} onSwitchUser={handleUserSwitch} activeView={activeView} setActiveView={setActiveView} isOpen={isSidebarOpen} /> */}
+      <Sidebar activeView={activeView} setActiveView={setActiveView} isOpen={isSidebarOpen} />
 
       <main className="flex-1 p-4 sm:p-8 overflow-y-auto">
         <Header activeView={activeView} onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
@@ -797,13 +805,19 @@ export default function App() {
         onEvaluate={handleEvaluation}
         mode={modalMode}
       />
-      <NewSubmissionModal
+      {/* <NewSubmissionModal
         visible={isNewSubmissionModalVisible}
         onHide={() => setIsNewSubmissionModalVisible(false)}
         event={selectedEvent}
         user={currentUser}
         onSubmit={handleNewSubmission}
-      />
+      /> */}
+      <NewSubmissionModal
+    visible={isNewSubmissionModalVisible}
+    onHide={() => setIsNewSubmissionModalVisible(false)}
+    event={selectedEvent}
+    onSubmit={handleNewSubmission}
+/>
       <EventSubmissionsModal
         visible={isEventSubmissionsModalVisible}
         onHide={() => setIsEventSubmissionsModalVisible(false)}
