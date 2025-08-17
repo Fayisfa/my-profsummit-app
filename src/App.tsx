@@ -137,8 +137,7 @@ let SUBMISSIONS: Submission[] = [
 
 // --- HELPER COMPONENTS ---
 
-// const Sidebar: React.FC<{ user: User | null; onSwitchUser: (user: User) => void; activeView: View; setActiveView: (view: View) => void; isOpen: boolean; }> = ({ user, onSwitchUser, activeView, setActiveView, isOpen }) => {
-const Sidebar: React.FC<{ activeView: View; setActiveView: (view: View) => void; isOpen: boolean; }> = ({ activeView, setActiveView, isOpen }) => {
+const Sidebar: React.FC<{ user: User | null; onSwitchUser: (user: User) => void; activeView: View; setActiveView: (view: View) => void; isOpen: boolean; }> = ({ user, onSwitchUser, activeView, setActiveView, isOpen }) => {
   const navItems = [
     { name: 'Overview', icon: HomeIcon },
     { name: 'Events', icon: CalendarIcon },
@@ -150,7 +149,6 @@ const Sidebar: React.FC<{ activeView: View; setActiveView: (view: View) => void;
     <aside className={`w-64 flex-shrink-0 bg-white border-r border-slate-200 flex flex-col transition-transform duration-300 ease-in-out md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'} absolute md:relative z-20`}>
       <div className="h-16 flex items-center px-6 border-b border-slate-200">
         <UserGroupIcon className="w-8 h-8 text-indigo-600" />
-        {/* <h1 className="text-xl font-bold text-slate-800 ml-2">ProfSummit</h1> */}
         <img src="/logo_2024.svg" alt="" />
       </div>
       <nav className="flex-1 px-4 py-6 space-y-2">
@@ -167,7 +165,7 @@ const Sidebar: React.FC<{ activeView: View; setActiveView: (view: View) => void;
           </a>
         ))}
       </nav>
-      {/* <div className="p-4 border-t border-slate-200">
+      <div className="p-4 border-t border-slate-200">
         <p className="text-sm font-semibold text-slate-600 mb-2">Switch View</p>
         <div className="space-y-1">
           {USERS.map(u => (
@@ -182,7 +180,7 @@ const Sidebar: React.FC<{ activeView: View; setActiveView: (view: View) => void;
             </button>
           ))}
         </div>
-      </div> */}
+      </div>
     </aside>
   );
 };
@@ -478,19 +476,13 @@ const SubmissionModal: React.FC<{
   );
 };
 
-// const NewSubmissionModal: React.FC<{
-//   visible: boolean;
-//   onHide: () => void;
-//   event: Event | null;
-//   user: User;
-//   onSubmit: (submissionData: Submission['data']) => void;
-// }> = ({ visible, onHide, event, user, onSubmit }) => {
 const NewSubmissionModal: React.FC<{
-    visible: boolean;
-    onHide: () => void;
-    event: Event | null;
-    onSubmit: (submissionData: Submission['data']) => void;
-}> = ({ visible, onHide, event, onSubmit }) => {
+  visible: boolean;
+  onHide: () => void;
+  event: Event | null;
+  user: User;
+  onSubmit: (submissionData: Submission['data']) => void;
+}> = ({ visible, onHide, event, user, onSubmit }) => {
   const [link, setLink] = React.useState('');
   const [text, setText] = React.useState('');
   const [quantity, setQuantity] = React.useState(1);
@@ -598,8 +590,7 @@ const EventSubmissionsModal: React.FC<{
 
 // --- MAIN APP COMPONENT ---
 export default function App() {
-  // const [currentUser, setCurrentUser] = React.useState<User>(USERS[0]);
-  const [currentUser, setCurrentUser] = React.useState<User>(USERS[1]);
+  const [currentUser, setCurrentUser] = React.useState<User>(USERS[0]);
   const [submissions, setSubmissions] = React.useState<Submission[]>(SUBMISSIONS);
   const [campuses, setCampuses] = React.useState<Campus[]>(CAMPUSES);
   const [activeView, setActiveView] = React.useState<View>('Overview');
@@ -732,10 +723,10 @@ export default function App() {
             <div className="flex justify-between items-start mb-2">
               <h3 className="font-bold text-slate-800">{EVENTS.find(e => e.id === submission.eventId)?.title}</h3>
               <span className={`px-2 py-1 text-xs font-medium rounded-full ${{
-                  'Approved': 'bg-emerald-100 text-emerald-800',
-                  'Rejected': 'bg-rose-100 text-rose-800',
-                  'Pending Review': 'bg-amber-100 text-amber-800'
-                }[submission.status] || 'bg-slate-100 text-slate-800'
+                'Approved': 'bg-emerald-100 text-emerald-800',
+                'Rejected': 'bg-rose-100 text-rose-800',
+                'Pending Review': 'bg-amber-100 text-amber-800'
+              }[submission.status] || 'bg-slate-100 text-slate-800'
                 }`}>{submission.status}</span>
             </div>
             <div className="grid grid-cols-2 gap-4 text-sm">
@@ -776,8 +767,7 @@ export default function App() {
 
   return (
     <div className="bg-slate-50 min-h-screen font-sans text-slate-800 flex relative">
-      {/* <Sidebar user={currentUser} onSwitchUser={handleUserSwitch} activeView={activeView} setActiveView={setActiveView} isOpen={isSidebarOpen} /> */}
-      <Sidebar activeView={activeView} setActiveView={setActiveView} isOpen={isSidebarOpen} />
+      <Sidebar user={currentUser} onSwitchUser={handleUserSwitch} activeView={activeView} setActiveView={setActiveView} isOpen={isSidebarOpen} />
 
       <main className="flex-1 p-4 sm:p-8 overflow-y-auto">
         <Header activeView={activeView} onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
@@ -805,19 +795,13 @@ export default function App() {
         onEvaluate={handleEvaluation}
         mode={modalMode}
       />
-      {/* <NewSubmissionModal
+      <NewSubmissionModal
         visible={isNewSubmissionModalVisible}
         onHide={() => setIsNewSubmissionModalVisible(false)}
         event={selectedEvent}
         user={currentUser}
         onSubmit={handleNewSubmission}
-      /> */}
-      <NewSubmissionModal
-    visible={isNewSubmissionModalVisible}
-    onHide={() => setIsNewSubmissionModalVisible(false)}
-    event={selectedEvent}
-    onSubmit={handleNewSubmission}
-/>
+      />
       <EventSubmissionsModal
         visible={isEventSubmissionsModalVisible}
         onHide={() => setIsEventSubmissionsModalVisible(false)}
