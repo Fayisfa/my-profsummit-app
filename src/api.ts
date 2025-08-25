@@ -2,7 +2,9 @@
 
 import type { Submission } from "./types";
 
-const API_BASE_URL = 'http://localhost:8080';
+// const API_BASE_URL = 'http://localhost:8080';
+const API_BASE_URL = 'https://mediumaquamarine-eel-107102.hostingersite.com';
+
 
 /**
  * Handles the login for a State Admin.
