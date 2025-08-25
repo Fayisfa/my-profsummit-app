@@ -1,143 +1,65 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import type { User, Campus, Event, Submission, View, SubmissionStatus } from './types';
+import { EVENTS } from './database'; // We only need static events now
+import { getCampuses, getSubmissions, createOrUpdateSubmission, uploadFile } from './api'; // Import our API functions
 
-// --- MOCK ICONS ---
-// In a real app, you'd use an icon library like Lucide or Heroicons.
-// For this example, we'll use simple SVG components.
+// --- (All your Icon and Helper Components remain the same) ---
 const HomeIcon = ({ className = "w-6 h-6" }) => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h7.5" />
   </svg>
 );
-
 const CalendarIcon = ({ className = "w-6 h-6" }) => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0h18M-4.5 12h22.5" />
   </svg>
 );
-
 const TrophyIcon = ({ className = "w-6 h-6" }) => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75h-9a9.75 9.75 0 01-9-9.75V5.625a1.5 1.5 0 011.5-1.5h16.5a1.5 1.5 0 011.5 1.5v3.375c0 5.385-4.365 9.75-9.75 9.75z" />
     <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75a9.75 9.75 0 00-9-9.75V5.625" />
   </svg>
 );
-
 const InboxIcon = ({ className = "w-6 h-6" }) => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 012.012 1.244l.256.512a2.25 2.25 0 002.013 1.244h3.218a2.25 2.25 0 002.013-1.244l.256-.512a2.25 2.25 0 012.013-1.244h3.859m-19.5.338V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 00-2.12-1.588H6.88a2.25 2.25 0 00-2.12 1.588L2.35 13.177a2.25 2.25 0 00-.1.661z" />
   </svg>
 );
-
 const UserGroupIcon = ({ className = "w-6 h-6" }) => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m-7.5-2.962c.51.054 1.022.083 1.531.083m-1.531-.083a9.06 9.06 0 01-3.443-2.12 3 3 0 01-4.11-3.563M18 18.72v-5.25m-12 5.25v-5.25m0 0l-3-1.5m3 1.5l3 1.5m-3-1.5l-3-1.5m3 1.5l3 1.5M9 11.25l3-1.5 3 1.5m-6 0l3-1.5 3 1.5M9 11.25v-5.25m3 5.25v-5.25m3 5.25v-5.25M12 6.75l3-1.5 3 1.5m-6 0l3-1.5 3 1.5" />
   </svg>
 );
-
 const MenuIcon = ({ className = "w-6 h-6" }) => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
   </svg>
 );
-
-
 const ChevronRightIcon = ({ className = "w-6 h-6" }) => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
   </svg>
 );
-
 const ArrowRightIcon = ({ className = "w-6 h-6" }) => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12h15m0 0l-6.75-6.75M19.5 12l-6.75 6.75" />
   </svg>
 );
-
-// --- TYPE DEFINITIONS ---
-type UserRole = 'State Admin' | 'Campus Unit User';
-type View = 'Overview' | 'Events' | 'Submissions' | 'Leaderboard';
-type GradingType = 'Fixed' | 'Variable' | 'Tiered' | 'Discretion';
-type SubmissionType = 'Media Upload' | 'Quantitative Input' | 'Text Submission' | 'Simple Participation' | 'Image Upload' | 'Video Upload';
-type SubmissionStatus = 'Pending Review' | 'Approved' | 'Rejected';
-
-interface User {
-  id: number;
-  name: string;
-  role: UserRole;
-  campusId?: number;
-  district?: string;
-}
-
-interface Campus {
-  id: number;
-  name: string;
-  district: string;
-  points: number;
-}
-
-interface Event {
-  id: number;
-  title: string;
-  description: string;
-  submissionType: SubmissionType;
-  gradingType: GradingType;
-  maxPoints: number;
-  deadline: string;
-}
-
-interface Submission {
-  id: number;
-  eventId: number;
-  campusId: number;
-  submittedBy: string;
-  status: SubmissionStatus;
-  submittedAt: string;
-  data: {
-    link?: string;
-    file?: string;
-    quantity?: number;
-    text?: string;
-    photoEvidence?: string;
-    image?: string;
-    video?: string;
-  };
-  feedback?: string;
-  awardedPoints?: number;
-}
-
-// --- MOCK DATABASE ---
-const USERS: User[] = [
-  { id: 1, name: 'Super Admin', role: 'State Admin' },
-  { id: 3, name: 'Main Campus Rep', role: 'Campus Unit User', campusId: 1 },
-  { id: 4, name: 'South Campus Rep', role: 'Campus Unit User', campusId: 2 },
-];
-
-let CAMPUSES: Campus[] = [
-  { id: 1, name: 'Central University', district: 'North', points: 15 },
-  { id: 2, name: 'Southern State College', district: 'South', points: 5 },
-  { id: 3, name: 'Northern Tech Institute', district: 'North', points: 25 },
-  { id: 4, name: 'Western Community College', district: 'West', points: 0 },
-];
-
-const EVENTS: Event[] = [
-  { id: 1, title: 'Frame to Fame', description: 'Submit your best promotional reel on social media.', submissionType: 'Media Upload', gradingType: 'Discretion', maxPoints: 20, deadline: '2025-09-15' },
-  { id: 2, title: 'Chumarezhuth', description: 'Paint walls in your community. 5 points per wall.', submissionType: 'Quantitative Input', gradingType: 'Variable', maxPoints: 50, deadline: '2025-09-20' },
-  { id: 3, title: 'Community Reach', description: 'Submit a report on your community service activities.', submissionType: 'Text Submission', gradingType: 'Fixed', maxPoints: 10, deadline: '2025-09-10' },
-  { id: 4, title: 'Vigilantia-1 Participation', description: 'Confirm participation in the awareness drive.', submissionType: 'Simple Participation', gradingType: 'Fixed', maxPoints: 5, deadline: '2025-09-05' },
-  { id: 5, title: 'Campus Photography Contest', description: 'Submit your best campus photo.', submissionType: 'Image Upload', gradingType: 'Discretion', maxPoints: 15, deadline: '2025-10-01' },
-];
-
-let SUBMISSIONS: Submission[] = [
-  { id: 1, eventId: 1, campusId: 1, submittedBy: 'Main Campus Rep', status: 'Pending Review', submittedAt: '2025-09-01', data: { link: 'https://instagram.com/reel/123' } },
-  { id: 2, eventId: 2, campusId: 3, submittedBy: 'Northern Tech Rep', status: 'Pending Review', submittedAt: '2025-09-02', data: { quantity: 5, photoEvidence: 'photo_of_5_walls.jpg' } },
-  { id: 3, eventId: 3, campusId: 1, submittedBy: 'Main Campus Rep', status: 'Approved', submittedAt: '2025-08-28', data: { text: 'We conducted a cleanliness drive...' }, awardedPoints: 10, feedback: 'Great work!' },
-  { id: 4, eventId: 4, campusId: 2, submittedBy: 'South Campus Rep', status: 'Approved', submittedAt: '2025-09-01', data: {}, awardedPoints: 5, feedback: 'Participation confirmed.' },
-  { id: 5, eventId: 1, campusId: 3, submittedBy: 'Northern Tech Rep', status: 'Approved', submittedAt: '2025-09-04', data: { link: 'https://instagram.com/reel/abc' }, awardedPoints: 15, feedback: 'Excellent video quality and engagement.' },
-];
+const LogoutIcon = ({ className = "w-6 h-6" }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+  </svg>
+);
 
 // --- HELPER COMPONENTS ---
-
-const Sidebar: React.FC<{ user: User | null; onSwitchUser: (user: User) => void; activeView: View; setActiveView: (view: View) => void; isOpen: boolean; }> = ({ user, onSwitchUser, activeView, setActiveView, isOpen }) => {
+// ... (Sidebar, Header, OverviewCard, Leaderboard, EventCard, ModalWrapper components remain unchanged) ...
+const Sidebar: React.FC<{
+  user: User;
+  onLogout: () => void;
+  activeView: View;
+  setActiveView: (view: View) => void;
+  isOpen: boolean;
+}> = ({ user, onLogout, activeView, setActiveView, isOpen }) => {
   const navItems = [
     { name: 'Overview', icon: HomeIcon },
     { name: 'Events', icon: CalendarIcon },
@@ -146,10 +68,12 @@ const Sidebar: React.FC<{ user: User | null; onSwitchUser: (user: User) => void;
   ];
 
   return (
-    <aside className={`w-64 flex-shrink-0 bg-white border-r border-slate-200 flex flex-col transition-transform duration-300 ease-in-out md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'} absolute md:relative z-20`}>
+    <aside className={`w-64 flex-shrink-0 bg-white border-r border-slate-200 flex flex-col transition-transform duration-300 ease-in-out 
+  md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'} absolute md:relative z-20`}
+    >
       <div className="h-16 flex items-center px-6 border-b border-slate-200">
         <UserGroupIcon className="w-8 h-8 text-indigo-600" />
-        <img src="/logo_2024.svg" alt="" />
+        <span className="ml-2 font-bold text-lg">CampusDash</span>
       </div>
       <nav className="flex-1 px-4 py-6 space-y-2">
         {navItems.map(item => (
@@ -157,8 +81,7 @@ const Sidebar: React.FC<{ user: User | null; onSwitchUser: (user: User) => void;
             key={item.name}
             href="#"
             onClick={(e) => { e.preventDefault(); setActiveView(item.name as View); }}
-            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors ${activeView === item.name ? 'bg-indigo-50 text-indigo-600 font-semibold' : 'text-slate-500 hover:bg-slate-100'
-              }`}
+            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors ${activeView === item.name ? 'bg-indigo-50 text-indigo-600 font-semibold' : 'text-slate-500 hover:bg-slate-100'}`}
           >
             <item.icon className="w-5 h-5" />
             <span>{item.name}</span>
@@ -166,20 +89,15 @@ const Sidebar: React.FC<{ user: User | null; onSwitchUser: (user: User) => void;
         ))}
       </nav>
       <div className="p-4 border-t border-slate-200">
-        <p className="text-sm font-semibold text-slate-600 mb-2">Switch View</p>
-        <div className="space-y-1">
-          {USERS.map(u => (
-            <button
-              key={u.id}
-              onClick={() => onSwitchUser(u)}
-              className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors flex items-center justify-between ${user?.id === u.id ? 'bg-indigo-600 text-white' : 'hover:bg-slate-100 text-slate-700'
-                }`}
-            >
-              {u.name}
-              {user?.id === u.id && <span className="w-2 h-2 bg-white rounded-full"></span>}
-            </button>
-          ))}
-        </div>
+        <p className="px-4 text-sm font-semibold text-slate-700">{user.name}</p>
+        <p className="px-4 text-xs text-slate-500 mb-2">{user.role}</p>
+        <button
+          onClick={onLogout}
+          className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-slate-500 hover:bg-rose-50 hover:text-rose-600"
+        >
+          <LogoutIcon className="w-5 h-5" />
+          <span className="font-semibold">Logout</span>
+        </button>
       </div>
     </aside>
   );
@@ -211,9 +129,9 @@ const OverviewCard: React.FC<{ user: User | null }> = ({ user }) => (
     <div className="bg-white/20 h-px mb-4"></div>
     <div className="flex justify-between items-center">
       <p className="font-medium">{user?.name}</p>
-      <button className="bg-white text-indigo-600 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-50 transition-colors">
+      {/* <button className="bg-white text-indigo-600 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-50 transition-colors">
         Manage Profile
-      </button>
+      </button> */}
     </div>
   </div>
 );
@@ -250,14 +168,21 @@ const Leaderboard: React.FC<{ campuses: Campus[] }> = ({ campuses }) => {
   );
 };
 
-const EventCard: React.FC<{ event: Event, user: User, onAction: (event: Event) => void }> = ({ event, user, onAction }) => {
+const EventCard: React.FC<{ event: Event, user: User, onAction: (event: Event) => void, submissions: Submission[] }> = ({ event, user, onAction, submissions }) => {
+  const existingSubmission = user.campusId ? submissions.find(s => s.event_id === event.id && s.campus_id === String(user.campusId)) : null;
+
   const getActionLabel = () => {
-    if (user.role === 'Campus Unit User') return 'Submit Entry';
+    if (user.role === 'Campus Unit User') {
+      if (existingSubmission) {
+        return existingSubmission.status === 'pending' ? 'Update Entry' : 'View Entry';
+      }
+      return 'Submit Entry';
+    }
     if (user.role.includes('Admin')) return 'View Submissions';
     return 'View Details';
   };
 
-  const getSubmissionTypeColor = (type: SubmissionType) => ({
+  const getSubmissionTypeColor = (type: any) => ({
     'Media Upload': 'bg-purple-100 text-purple-800',
     'Quantitative Input': 'bg-blue-100 text-blue-800',
     'Text Submission': 'bg-green-100 text-green-800',
@@ -266,12 +191,14 @@ const EventCard: React.FC<{ event: Event, user: User, onAction: (event: Event) =
     'Video Upload': 'bg-red-100 text-red-800',
   }[type] || 'bg-slate-100 text-slate-800');
 
-  const getGradingTypeColor = (type: GradingType) => ({
+  const getGradingTypeColor = (type: any) => ({
     'Fixed': 'bg-sky-100 text-sky-800',
     'Variable': 'bg-orange-100 text-orange-800',
     'Tiered': 'bg-fuchsia-100 text-fuchsia-800',
     'Discretion': 'bg-rose-100 text-rose-800'
   }[type] || 'bg-slate-100 text-slate-800');
+
+
 
   return (
     <div className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-300 border border-slate-200">
@@ -282,9 +209,7 @@ const EventCard: React.FC<{ event: Event, user: User, onAction: (event: Event) =
             {event.maxPoints} pts
           </span>
         </div>
-
         <p className="text-slate-600 mb-4 text-sm">{event.description}</p>
-
         <div className="flex flex-wrap gap-2 mb-4">
           <span className={`px-2 py-1 text-xs rounded-full font-medium ${getSubmissionTypeColor(event.submissionType)}`}>
             {event.submissionType}
@@ -293,13 +218,11 @@ const EventCard: React.FC<{ event: Event, user: User, onAction: (event: Event) =
             {event.gradingType}
           </span>
         </div>
-
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-4 border-t border-slate-100">
           <div className="flex items-center text-sm text-slate-500">
             <CalendarIcon className="w-4 h-4 mr-1.5" />
             Deadline: {event.deadline}
           </div>
-
           <button
             onClick={() => onAction(event)}
             className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-colors flex items-center gap-2 shadow-sm hover:shadow-md"
@@ -314,15 +237,10 @@ const EventCard: React.FC<{ event: Event, user: User, onAction: (event: Event) =
   );
 };
 
-// --- MODALS (Restyled) ---
-
 const ModalWrapper: React.FC<{ visible: boolean; onHide: () => void; children: React.ReactNode; size?: 'lg' | 'xl' | '2xl' | '3xl' }> = ({ visible, onHide, children, size = '2xl' }) => {
   if (!visible) return null;
   const sizeClasses = {
-    'lg': 'max-w-lg',
-    'xl': 'max-w-xl',
-    '2xl': 'max-w-2xl',
-    '3xl': 'max-w-3xl',
+    'lg': 'max-w-lg', 'xl': 'max-w-xl', '2xl': 'max-w-2xl', '3xl': 'max-w-3xl',
   };
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4" onClick={onHide}>
@@ -334,12 +252,8 @@ const ModalWrapper: React.FC<{ visible: boolean; onHide: () => void; children: R
 };
 
 const SubmissionModal: React.FC<{
-  visible: boolean;
-  onHide: () => void;
-  submission: Submission | null;
-  event: Event | null;
-  campus: Campus | null;
-  onEvaluate?: (submissionId: number, status: 'Approved' | 'Rejected', points: number, feedback: string) => void;
+  visible: boolean; onHide: () => void; submission: Submission | null; event: Event | null; campus: Campus | null;
+  onEvaluate?: (submissionId: number, status: 'approved' | 'rejected', points: number, feedback: string) => void;
   mode: 'evaluate' | 'view';
 }> = ({ visible, onHide, submission, event, campus, onEvaluate, mode }) => {
   const [points, setPoints] = React.useState<number>(0);
@@ -347,17 +261,17 @@ const SubmissionModal: React.FC<{
 
   React.useEffect(() => {
     if (submission) {
-      setPoints(submission.awardedPoints ?? 0);
+      setPoints(submission.marks ?? 0);
       setFeedback(submission.feedback ?? '');
     }
   }, [submission]);
 
   if (!submission || !event || !campus) return null;
 
-  const handleEvaluation = (status: 'Approved' | 'Rejected') => {
+  const handleEvaluation = (status: 'approved' | 'rejected') => {
     if (!onEvaluate) return;
     let awardedPoints = 0;
-    if (status === 'Approved') {
+    if (status === 'approved') {
       switch (event.gradingType) {
         case 'Fixed': awardedPoints = event.maxPoints; break;
         default: awardedPoints = Math.min(points, event.maxPoints); break;
@@ -368,9 +282,9 @@ const SubmissionModal: React.FC<{
   };
 
   const getStatusColor = (status: SubmissionStatus) => ({
-    'Approved': 'bg-emerald-100 text-emerald-800',
-    'Rejected': 'bg-rose-100 text-rose-800',
-    'Pending Review': 'bg-amber-100 text-amber-800'
+    'approved': 'bg-emerald-100 text-emerald-800',
+    'rejected': 'bg-rose-100 text-rose-800',
+    'pending': 'bg-amber-100 text-amber-800'
   }[status] || 'bg-slate-100 text-slate-800');
 
   return (
@@ -392,7 +306,7 @@ const SubmissionModal: React.FC<{
             </div>
             <div>
               <p className="text-sm font-medium text-slate-500">Submitted By</p>
-              <p className="font-semibold text-slate-700">{submission.submittedBy}</p>
+              <p className="font-semibold text-slate-700">{submission.submitted_by}</p>
             </div>
           </div>
           <div className="space-y-3">
@@ -404,7 +318,7 @@ const SubmissionModal: React.FC<{
             </div>
             <div>
               <p className="text-sm font-medium text-slate-500">Submitted On</p>
-              <p className="font-semibold text-slate-700">{submission.submittedAt}</p>
+              <p className="font-semibold text-slate-700">{submission.created_at}</p>
             </div>
           </div>
         </div>
@@ -412,16 +326,13 @@ const SubmissionModal: React.FC<{
         {/* Submission Data */}
         <div>
           <h4 className="font-bold mb-3 text-slate-800 border-b pb-2">Submission Content</h4>
-          <div>
-            <h4 className="font-bold mb-3 text-slate-800 border-b pb-2">Submission Content</h4>
-            <div className="space-y-3 text-sm bg-slate-50 p-4 rounded-lg">
-              {submission.data.link && <p><strong>Link:</strong> <a href={submission.data.link} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">{submission.data.link}</a></p>}
-              {submission.data.text && <p><strong>Report:</strong> <span className="text-slate-700 whitespace-pre-wrap">{submission.data.text}</span></p>}
-              {submission.data.quantity && <p><strong>Quantity:</strong> <span className="font-semibold text-slate-800">{submission.data.quantity}</span></p>}
-              {submission.data.image && <p><strong>Image File:</strong> <span className="text-slate-700">{submission.data.image}</span></p>}
-              {submission.data.video && <p><strong>Video File:</strong> <span className="text-slate-700">{submission.data.video}</span></p>}
-              {Object.keys(submission.data).length === 0 && <p className="text-slate-500">This was a simple participation event.</p>}
-            </div>
+          <div className="space-y-3 text-sm bg-slate-50 p-4 rounded-lg">
+            {submission.data.link && <p><strong>Link:</strong> <a href={submission.data.link} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">{submission.data.link}</a></p>}
+            {submission.data.text && <p><strong>Report:</strong> <span className="text-slate-700 whitespace-pre-wrap">{submission.data.text}</span></p>}
+            {submission.data.quantity && <p><strong>Quantity:</strong> <span className="font-semibold text-slate-800">{submission.data.quantity}</span></p>}
+            {submission.data.image && <p><strong>Image File:</strong> <span className="text-slate-700">{submission.data.image}</span></p>}
+            {submission.data.video && <p><strong>Video File:</strong> <span className="text-slate-700">{submission.data.video}</span></p>}
+            {submission.data && Object.keys(submission.data).length === 0 && <p className="text-slate-500">This was a simple participation event.</p>}
           </div>
         </div>
 
@@ -429,35 +340,32 @@ const SubmissionModal: React.FC<{
           <div className="space-y-6">
             <div>
               <h4 className="font-bold mb-3 text-slate-800 border-b pb-2">Evaluation</h4>
-              <div>
-                <h4 className="font-bold mb-3 text-slate-800 border-b pb-2">Evaluation</h4>
-                {event.gradingType === 'Fixed' || event.gradingType === 'Variable' ? (
-                  <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
-                    <p className="font-semibold text-blue-800">Points are calculated automatically.</p>
-                    <p className="text-sm text-blue-700">
-                      {event.gradingType === 'Fixed'
-                        ? `Approving will award a fixed ${event.maxPoints} points.`
-                        : `Approving will award points based on quantity (e.g., ${submission.data.quantity} units).`
-                      }
-                    </p>
-                  </div>
-                ) : (
-                  <div>
-                    <label htmlFor="points" className="block text-sm font-medium text-slate-700 mb-2">Award Points (Max: {event.maxPoints})</label>
-                    <input
-                      id="points"
-                      type="number"
-                      value={points}
-                      onChange={(e) => setPoints(Math.max(0, Math.min(event.maxPoints, Number(e.target.value))))}
-                      max={event.maxPoints}
-                      min="0"
-                      className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                      aria-describedby="points-helper"
-                    />
-                    <p id="points-helper" className="text-xs text-slate-500 mt-1">For {event.gradingType} grading, you set the points manually.</p>
-                  </div>
-                )}
-              </div>
+              {event.gradingType === 'Fixed' || event.gradingType === 'Variable' ? (
+                <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                  <p className="font-semibold text-blue-800">Points are calculated automatically.</p>
+                  <p className="text-sm text-blue-700">
+                    {event.gradingType === 'Fixed'
+                      ? `Approving will award a fixed ${event.maxPoints} points.`
+                      : `Approving will award points based on quantity (e.g., ${submission.data.quantity} units).`
+                    }
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <label htmlFor="points" className="block text-sm font-medium text-slate-700 mb-2">Award Points (Max: {event.maxPoints})</label>
+                  <input
+                    id="points"
+                    type="number"
+                    value={points}
+                    onChange={(e) => setPoints(Math.max(0, Math.min(event.maxPoints, Number(e.target.value))))}
+                    max={event.maxPoints}
+                    min="0"
+                    className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    aria-describedby="points-helper"
+                  />
+                  <p id="points-helper" className="text-xs text-slate-500 mt-1">For {event.gradingType} grading, you set the points manually.</p>
+                </div>
+              )}
             </div>
             <div>
               <label htmlFor="feedback" className="block text-sm font-medium text-slate-700 mb-2"> Comments/Reason <span className="text-slate-500">(Required for Rejection)</span></label>
@@ -468,8 +376,8 @@ const SubmissionModal: React.FC<{
       </div>
       {mode === 'evaluate' && (
         <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row gap-3 justify-end">
-          <button onClick={() => handleEvaluation('Rejected')} disabled={!feedback} className="px-5 py-2.5 rounded-lg font-semibold text-sm text-white bg-rose-600 hover:bg-rose-700 disabled:bg-slate-400 disabled:cursor-not-allowed"> Reject Submission </button>
-          <button onClick={() => handleEvaluation('Approved')} className="px-5 py-2.5 rounded-lg font-semibold text-sm text-white bg-emerald-600 hover:bg-emerald-700"> Approve Submission </button>
+          <button onClick={() => handleEvaluation('rejected')} disabled={!feedback} className="px-5 py-2.5 rounded-lg font-semibold text-sm text-white bg-rose-600 hover:bg-rose-700 disabled:bg-slate-400 disabled:cursor-not-allowed"> Reject Submission </button>
+          <button onClick={() => handleEvaluation('approved')} className="px-5 py-2.5 rounded-lg font-semibold text-sm text-white bg-emerald-600 hover:bg-emerald-700"> Approve Submission </button>
         </div>
       )}
     </ModalWrapper>
@@ -481,84 +389,95 @@ const NewSubmissionModal: React.FC<{
   onHide: () => void;
   event: Event | null;
   user: User;
-  onSubmit: (submissionData: Submission['data']) => void;
-}> = ({ visible, onHide, event, user, onSubmit }) => {
-  const [link, setLink] = React.useState('');
-  const [text, setText] = React.useState('');
-  const [quantity, setQuantity] = React.useState(1);
-  const [image, setImage] = React.useState('');
-  const [video, setVideo] = React.useState('');
+  onSubmit: (submissionData: Partial<Submission>, file?: File | null) => void;
+  existingSubmission: Submission | null; // New prop
+}> = ({ visible, onHide, event, user, onSubmit, existingSubmission }) => {
+    const [link, setLink] = useState('');
+    const [text, setText] = useState('');
+    const [quantity, setQuantity] = useState(1);
+    const [file, setFile] = useState<File | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-  React.useEffect(() => {
-    setLink('');
-    setText('');
-    setQuantity(1);
-    setImage('');
-    setVideo('');
-  }, [visible, event]);
+    useEffect(() => {
+        if (visible && event) {
+            // Pre-fill form if an existing submission is provided
+            if (existingSubmission) {
+                setLink(existingSubmission.data?.link || '');
+                setText(existingSubmission.data?.text || '');
+                setQuantity(existingSubmission.data?.quantity || 1);
+            } else {
+            // Reset form for a new submission
+                setLink('');
+                setText('');
+                setQuantity(1);
+                setFile(null);
+            }
+        }
+    }, [visible, event, existingSubmission]);
 
-  if (!visible || !event) return null;
+    if (!visible || !event) return null;
 
-  const handleSubmit = () => {
-    const data: Submission['data'] = {};
-    switch (event.submissionType) {
-      case 'Media Upload': data.link = link; break;
-      case 'Text Submission': data.text = text; break;
-      case 'Quantitative Input': data.quantity = quantity; break;
-      case 'Image Upload': data.image = image; break;
-      case 'Video Upload': data.video = video; break;
+    const handleSubmit = async () => {
+        setIsSubmitting(true);
+        const data: Submission['data'] = {};
+        switch (event.submissionType) {
+            case 'Media Upload': data.link = link; break;
+            case 'Text Submission': data.text = text; break;
+            case 'Quantitative Input': data.quantity = quantity; break;
+            // For file uploads, the URL will be added in the main handler
+        }
+        await onSubmit({ data }, file);
+        setIsSubmitting(false);
+        onHide();
+    };
+
+    const renderFormFields = () => {
+        switch (event?.submissionType) {
+            case 'Media Upload':
+                return <div><label className="text-sm font-medium text-slate-700 mb-1 block">Social Media Link</label><input type="url" value={link} onChange={e => setLink(e.target.value)} className="w-full p-2 border border-slate-300 rounded-lg" placeholder="https://..." /></div>;
+            case 'Text Submission':
+                return <div><label className="text-sm font-medium text-slate-700 mb-1 block">Report</label><textarea value={text} onChange={e => setText(e.target.value)} rows={5} className="w-full p-2 border border-slate-300 rounded-lg" /></div>;
+            case 'Quantitative Input':
+                return <div><label className="text-sm font-medium text-slate-700 mb-1 block">Quantity</label><input type="number" value={quantity} onChange={e => setQuantity(Number(e.target.value))} min="1" className="w-full p-2 border border-slate-300 rounded-lg" /></div>;
+            case 'Image Upload':
+                return <div><label className="text-sm font-medium text-slate-700 mb-1 block">Image Upload</label><input type="file" accept="image/*" onChange={e => setFile(e.target.files ? e.target.files[0] : null)} className="w-full p-2 border border-slate-300 rounded-lg" /></div>;
+            case 'Video Upload':
+                return <div><label className="text-sm font-medium text-slate-700 mb-1 block">Video Upload</label><input type="file" accept="video/*" onChange={e => setFile(e.target.files ? e.target.files[0] : null)} className="w-full p-2 border border-slate-300 rounded-lg" /></div>;
+            case 'Simple Participation':
+                return <p className="text-center text-slate-600 bg-slate-50 p-4 rounded-lg">Clicking "Submit" will confirm your campus's participation in this event.</p>
+            default: return null;
+        }
     }
-    onSubmit(data);
-    onHide();
-  }
 
-  const renderFormFields = () => {
-    switch (event.submissionType) {
-      case 'Media Upload':
-        return <div><label className="text-sm font-medium text-slate-700 mb-1 block">Social Media Link</label><input type="url" value={link} onChange={e => setLink(e.target.value)} className="w-full p-2 border border-slate-300 rounded-lg" placeholder="https://..." /></div>;
-      case 'Text Submission':
-        return <div><label className="text-sm font-medium text-slate-700 mb-1 block">Report</label><textarea value={text} onChange={e => setText(e.target.value)} rows={5} className="w-full p-2 border border-slate-300 rounded-lg" /></div>;
-      case 'Quantitative Input':
-        return <div><label className="text-sm font-medium text-slate-700 mb-1 block">Quantity</label><input type="number" value={quantity} onChange={e => setQuantity(Number(e.target.value))} min="1" className="w-full p-2 border border-slate-300 rounded-lg" /></div>;
-      case 'Image Upload':
-        return <div><label className="text-sm font-medium text-slate-700 mb-1 block">Image Upload</label><input type="file" accept="image/*" onChange={e => setImage(e.target.files ? e.target.files[0].name : '')} className="w-full p-2 border border-slate-300 rounded-lg" /></div>;
-      case 'Video Upload':
-        return <div><label className="text-sm font-medium text-slate-700 mb-1 block">Video Upload</label><input type="file" accept="video/*" onChange={e => setVideo(e.target.files ? e.target.files[0].name : '')} className="w-full p-2 border border-slate-300 rounded-lg" /></div>;
-      case 'Simple Participation':
-        return <p className="text-center text-slate-600 bg-slate-50 p-4 rounded-lg">Clicking "Submit" will confirm your campus's participation in this event.</p>
-      default: return null;
-    }
-  }
-
-  return (
-    <ModalWrapper visible={visible} onHide={onHide} size="lg">
-      <div className="p-6">
-        <h2 className="text-2xl font-bold mb-2">{event.title}</h2>
-        <p className="text-slate-600 mb-6">Submit your entry for this event.</p>
-        <div className="space-y-4 mb-6">{renderFormFields()}</div>
-        <div className="flex justify-end gap-4">
-          <button onClick={onHide} className="bg-slate-200 text-slate-800 px-4 py-2 rounded-lg hover:bg-slate-300">Cancel</button>
-          <button onClick={handleSubmit} className="bg-indigo-600 text-white px-6 py-2 rounded-lg">Submit Entry</button>
-        </div>
-      </div>
-    </ModalWrapper>
-  );
-}
+    return (
+        <ModalWrapper visible={visible} onHide={onHide} size="lg">
+            <div className="p-6">
+                <h2 className="text-2xl font-bold mb-2">{existingSubmission ? 'Update Submission' : event.title}</h2>
+                <p className="text-slate-600 mb-6">{existingSubmission ? 'Update your entry for this event.' : 'Submit your entry for this event.'}</p>
+                <div className="space-y-4 mb-6">
+                    {renderFormFields()}
+                </div>
+                <div className="flex justify-end gap-4">
+                    <button onClick={onHide} className="bg-slate-200 text-slate-800 px-4 py-2 rounded-lg hover:bg-slate-300" disabled={isSubmitting}>Cancel</button>
+                    <button onClick={handleSubmit} className="bg-indigo-600 text-white px-6 py-2 rounded-lg" disabled={isSubmitting}>
+                        {isSubmitting ? 'Submitting...' : (existingSubmission ? 'Update Entry' : 'Submit Entry')}
+                    </button>
+                </div>
+            </div>
+        </ModalWrapper>
+    );
+};
 
 const EventSubmissionsModal: React.FC<{
-  visible: boolean;
-  onHide: () => void;
-  event: Event | null;
-  submissions: Submission[];
-  campuses: Campus[];
+  visible: boolean; onHide: () => void; event: Event | null; submissions: Submission[]; campuses: Campus[];
   onSelectSubmission: (submission: Submission, mode: 'evaluate' | 'view') => void;
 }> = ({ visible, onHide, event, submissions, campuses, onSelectSubmission }) => {
   if (!visible || !event) return null;
 
-  const eventSubmissions = submissions.filter(s => s.eventId === event.id).sort((a, b) => b.id - a.id);
+  const eventSubmissions = submissions.filter(s => s.event_id === event.id).sort((a, b) => b.id - a.id);
   const getStatusColor = (status: SubmissionStatus) => ({
-    'Approved': 'bg-emerald-100 text-emerald-800', 'Rejected': 'bg-rose-100 text-rose-800',
-    'Pending Review': 'bg-amber-100 text-amber-800'
+    'approved': 'bg-emerald-100 text-emerald-800', 'rejected': 'bg-rose-100 text-rose-800',
+    'pending': 'bg-amber-100 text-amber-800'
   }[status] || 'bg-slate-100 text-slate-800');
 
   return (
@@ -571,12 +490,12 @@ const EventSubmissionsModal: React.FC<{
         {eventSubmissions.length > 0 ? eventSubmissions.map(sub => (
           <div key={sub.id} className="border rounded-lg p-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <div>
-              <p className="font-bold">{campuses.find(c => c.id === sub.campusId)?.name}</p>
-              <p className="text-sm text-slate-500">by {sub.submittedBy} on {sub.submittedAt}</p>
+              <p className="font-bold">{campuses.find(c => c.id === sub.campus_id)?.name}</p>
+              <p className="text-sm text-slate-500">by {sub.submitted_by} on {sub.created_at}</p>
             </div>
             <div className="flex items-center gap-4 mt-2 sm:mt-0">
               <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(sub.status)}`}>{sub.status}</span>
-              <button onClick={() => onSelectSubmission(sub, sub.status === 'Pending Review' ? 'evaluate' : 'view')} className="text-sm bg-indigo-600 text-white px-3 py-1 rounded-lg hover:bg-indigo-700">View / Edit</button>
+              <button onClick={() => onSelectSubmission(sub, sub.status === 'pending' ? 'evaluate' : 'view')} className="text-sm bg-indigo-600 text-white px-3 py-1 rounded-lg hover:bg-indigo-700">View / Edit</button>
             </div>
           </div>
         )) : <p className="text-center text-slate-500 py-8">No submissions have been made for this event yet.</p>}
@@ -585,64 +504,116 @@ const EventSubmissionsModal: React.FC<{
         <button onClick={onHide} className="bg-slate-200 text-slate-800 px-4 py-2 rounded-lg hover:bg-slate-300">Close</button>
       </div>
     </ModalWrapper>
-  )
-}
+  );
+};
+
 
 // --- MAIN APP COMPONENT ---
-export default function App() {
-  const [currentUser, setCurrentUser] = React.useState<User>(USERS[0]);
-  const [submissions, setSubmissions] = React.useState<Submission[]>(SUBMISSIONS);
-  const [campuses, setCampuses] = React.useState<Campus[]>(CAMPUSES);
-  const [activeView, setActiveView] = React.useState<View>('Overview');
-  const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
+interface AppProps {
+  user: User;
+  onLogout: () => void;
+}
+export default function App({ user, onLogout }: AppProps) {
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [campuses, setCampuses] = useState<Campus[]>([]);
+  const [activeView, setActiveView] = useState<View>('Overview');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'evaluate' | 'view'>('evaluate');
+  const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [isSubmissionModalVisible, setIsSubmissionModalVisible] = useState(false);
+  const [isNewSubmissionModalVisible, setIsNewSubmissionModalVisible] = useState(false);
+  const [isEventSubmissionsModalVisible, setIsEventSubmissionsModalVisible] = useState(false);
 
-  // Modal States
-  const [modalMode, setModalMode] = React.useState<'evaluate' | 'view'>('evaluate');
-  const [selectedSubmission, setSelectedSubmission] = React.useState<Submission | null>(null);
-  const [selectedEvent, setSelectedEvent] = React.useState<Event | null>(null);
-  const [isSubmissionModalVisible, setIsSubmissionModalVisible] = React.useState(false);
-  const [isNewSubmissionModalVisible, setIsNewSubmissionModalVisible] = React.useState(false);
-  const [isEventSubmissionsModalVisible, setIsEventSubmissionsModalVisible] = React.useState(false);
+  useEffect(() => {
+    const loadData = async () => {
+      const [campusData, submissionData] = await Promise.all([
+        getCampuses(),
+        getSubmissions()
+      ]);
+      setCampuses(campusData);
+      setSubmissions(submissionData);
+    };
+
+    loadData();
+  }, []);
 
   // --- Handlers ---
-  const handleUserSwitch = (user: User) => {
-    setCurrentUser(user);
-    setActiveView('Overview'); // Reset view on user switch
-  };
-
-  const handleEvaluation = (submissionId: number, status: 'Approved' | 'Rejected', points: number, feedback: string) => {
+  const handleEvaluation = (submissionId: number, status: 'approved' | 'rejected', points: number, feedback: string) => {
     const submissionToUpdate = submissions.find(s => s.id === submissionId);
     if (!submissionToUpdate) return;
 
-    const oldPoints = submissionToUpdate.status === 'Approved' ? (submissionToUpdate.awardedPoints ?? 0) : 0;
-    const newPoints = status === 'Approved' ? points : 0;
+    const oldPoints = submissionToUpdate.status === 'approved' ? (submissionToUpdate.marks ?? 0) : 0;
+    const newPoints = status === 'approved' ? points : 0;
     const pointDifference = newPoints - oldPoints;
 
     setSubmissions(prev => prev.map(sub =>
-      sub.id === submissionId ? { ...sub, status, awardedPoints: newPoints, feedback } : sub
+      sub.id === submissionId ? { ...sub, status, marks: newPoints, feedback } : sub
     ));
 
     if (pointDifference !== 0) {
       setCampuses(prev => prev.map(c =>
-        c.id === submissionToUpdate.campusId ? { ...c, points: c.points + pointDifference } : c
+        c.id === submissionToUpdate.campus_id ? { ...c, points: c.points + pointDifference } : c
       ));
     }
     setIsSubmissionModalVisible(false);
   };
 
-  const handleNewSubmission = (data: Submission['data']) => {
-    if (!selectedEvent || !currentUser.campusId) return;
-    const newSubmission: Submission = {
-      id: Math.max(0, ...submissions.map(s => s.id)) + 1,
-      eventId: selectedEvent.id,
-      campusId: currentUser.campusId,
-      submittedBy: currentUser.name,
-      status: 'Pending Review',
-      submittedAt: new Date().toISOString().split('T')[0],
-      data: data,
+  /**
+   * Handles both creating a new submission and updating an existing one.
+   * This function is passed down to the NewSubmissionModal.
+   * @param submissionData - The core data for the submission (e.g., text, link, quantity).
+   * @param file - An optional file object if the submission involves an upload.
+   */
+  const handleNewOrUpdateSubmission = async (submissionData: Partial<Submission>, file?: File | null) => {
+    // Ensure an event is selected and the user is a campus user.
+    if (!selectedEvent || !user.campusId) return;
+
+    let finalSubmissionData = { ...submissionData };
+
+    // --- Step 1: Handle File Upload ---
+    // If a file was provided with the form, upload it first.
+    if (file) {
+      const uploadResult = await uploadFile(file);
+      // If the upload is successful, add the returned URL to our submission data object.
+      if (uploadResult.success) {
+        if (finalSubmissionData.data) {
+          if (selectedEvent.submissionType === 'Image Upload') {
+            finalSubmissionData.data.image = uploadResult.url;
+          } else if (selectedEvent.submissionType === 'Video Upload') {
+            finalSubmissionData.data.video = uploadResult.url;
+          }
+        }
+      } else {
+        // If the upload fails, alert the user and stop the process.
+        alert(`Upload failed: ${uploadResult.error}`);
+        return;
+      }
+    }
+    // --- Step 2: Prepare and Send Submission Data ---
+    // Assemble the complete submission object to send to the backend.
+    const submissionToUpsert = {
+      event_id: selectedEvent.id,
+      campus_id: user.campusId,
+      submitted_by: user.name,
+      items: finalSubmissionData.data, // The backend expects 'items' for the JSON data
+      data: finalSubmissionData.data,
     };
-    setSubmissions(prev => [...prev, newSubmission]);
-    setIsNewSubmissionModalVisible(false);
+
+    // Call the API to either create or update the submission record.
+    const result = await createOrUpdateSubmission(submissionToUpsert);
+
+    // --- Step 3: Update UI ---
+    // If the submission was saved successfully...
+    if (result.success) {
+      // ...fetch the latest list of all submissions to ensure the UI is up-to-date.
+      const newSubmissions = await getSubmissions();
+      setSubmissions(newSubmissions);
+      alert(result.message); // Notify the user of success.
+    } else {
+      // If there was an error, show it to the user.
+      alert(`Submission failed: ${result.error}`);
+    }
   };
 
   const openSubmissionDetailModal = (submission: Submission, mode: 'evaluate' | 'view') => {
@@ -652,27 +623,44 @@ export default function App() {
     setIsSubmissionModalVisible(true);
   };
 
+
+  /**
+   * This function is triggered when a user clicks the action button on an EventCard.
+   * It determines what should happen next based on the user's role.
+   * @param event - The event object associated with the clicked card.
+   */
   const handleEventAction = (event: Event) => {
+    // Store the selected event in the state for other components to use.
     setSelectedEvent(event);
-    if (currentUser.role === 'State Admin') {
+
+    if (user.role === 'State Admin') {
+      // Admins should see a list of all submissions for that event.
       setIsEventSubmissionsModalVisible(true);
-    } else if (currentUser.role === 'Campus Unit User') {
+    } else if (user.role === 'Campus Unit User') {
+      // For campus users, we first check if they have already submitted for this event.
+      const existing = submissions.find(s => s.event_id === event.id && s.campus_id === String(user.campusId));
+
+      // We store the found submission (or null if none exists) in the state.
+      // This will be passed to the NewSubmissionModal to pre-fill the form for an update.
+      setSelectedSubmission(existing || null);
+
+      // Open the modal for creating or updating a submission.
       setIsNewSubmissionModalVisible(true);
     }
   };
 
   // --- Filtered Data ---
   const filteredSubmissions = React.useMemo(() => {
-    if (currentUser.role === 'State Admin') return submissions.filter(s => s.status === 'Pending Review');
+    if (user.role === 'State Admin') return submissions.filter(s => s.status === 'pending');
     return [];
-  }, [currentUser, submissions]);
+  }, [user, submissions]);
 
   const campusSubmissions = React.useMemo(() => {
-    if (currentUser.role === 'Campus Unit User') {
-      return submissions.filter(s => s.campusId === currentUser.campusId).sort((a, b) => b.id - a.id);
+    if (user.role === 'Campus Unit User') {
+      return submissions.filter(s => s.campus_id === String(user.campusId)).sort((a, b) => b.id - a.id);
     }
     return [];
-  }, [currentUser, submissions]);
+  }, [user, submissions]);
 
 
   // --- DASHBOARDS & VIEWS ---
@@ -695,9 +683,9 @@ export default function App() {
           <tbody>
             {filteredSubmissions.map(sub => (
               <tr key={sub.id} className="border-b border-slate-100 hover:bg-slate-50">
-                <td className="p-3 font-medium text-slate-700">{EVENTS.find(e => e.id === sub.eventId)?.title}</td>
-                <td className="p-3 text-slate-600">{campuses.find(c => c.id === sub.campusId)?.name}</td>
-                <td className="p-3 text-slate-500">{sub.submittedAt}</td>
+                <td className="p-3 font-medium text-slate-700">{EVENTS.find(e => e.id === sub.event_id)?.title}</td>
+                <td className="p-3 text-slate-600">{campuses.find(c => c.id === sub.campus_id)?.name}</td>
+                <td className="p-3 text-slate-500">{sub.created_at}</td>
                 <td className="p-3 text-right">
                   <button onClick={() => openSubmissionDetailModal(sub, 'evaluate')} className="bg-indigo-100 text-indigo-700 px-3 py-1.5 text-xs font-semibold rounded-md hover:bg-indigo-200">
                     Review
@@ -721,17 +709,17 @@ export default function App() {
         {campusSubmissions.map((submission) => (
           <div key={submission.id} className="border border-slate-200 rounded-xl p-4 hover:shadow-md transition-shadow cursor-pointer" onClick={() => openSubmissionDetailModal(submission, 'view')}>
             <div className="flex justify-between items-start mb-2">
-              <h3 className="font-bold text-slate-800">{EVENTS.find(e => e.id === submission.eventId)?.title}</h3>
+              <h3 className="font-bold text-slate-800">{EVENTS.find(e => e.id === submission.event_id)?.title}</h3>
               <span className={`px-2 py-1 text-xs font-medium rounded-full ${{
-                'Approved': 'bg-emerald-100 text-emerald-800',
-                'Rejected': 'bg-rose-100 text-rose-800',
-                'Pending Review': 'bg-amber-100 text-amber-800'
+                'approved': 'bg-emerald-100 text-emerald-800',
+                'rejected': 'bg-rose-100 text-rose-800',
+                'pending': 'bg-amber-100 text-amber-800'
               }[submission.status] || 'bg-slate-100 text-slate-800'
                 }`}>{submission.status}</span>
             </div>
             <div className="grid grid-cols-2 gap-4 text-sm">
-              <div><p className="text-xs text-slate-500">Submitted</p><p>{submission.submittedAt}</p></div>
-              <div><p className="text-xs text-slate-500">Points</p><p className={`font-bold ${submission.awardedPoints ? 'text-indigo-600' : 'text-slate-500'}`}>{submission.awardedPoints ?? '–'}</p></div>
+              <div><p className="text-xs text-slate-500">Submitted</p><p>{submission.created_at}</p></div>
+              <div><p className="text-xs text-slate-500">Points</p><p className={`font-bold ${submission.marks ? 'text-indigo-600' : 'text-slate-500'}`}>{submission.marks ?? '–'}</p></div>
             </div>
           </div>
         ))}
@@ -746,20 +734,20 @@ export default function App() {
           <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
             <h2 className="text-xl font-bold text-slate-800 mb-4">Available Events</h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {EVENTS.map(event => <EventCard key={event.id} event={event} user={currentUser} onAction={handleEventAction} />)}
+              {EVENTS.map(event => <EventCard key={event.id} event={event} user={user} onAction={handleEventAction} submissions={submissions} />)}
             </div>
           </div>
         );
       case 'Submissions':
-        return currentUser.role === 'State Admin' ? <AdminDashboard /> : <CampusDashboard />;
+        return user.role === 'State Admin' ? <AdminDashboard /> : <CampusDashboard />;
       case 'Leaderboard':
         return <Leaderboard campuses={campuses} />;
       case 'Overview':
       default:
         return (
           <>
-            <OverviewCard user={currentUser} />
-            {currentUser.role === 'State Admin' ? <AdminDashboard /> : <CampusDashboard />}
+            <OverviewCard user={user} />
+            {user.role === 'State Admin' ? <AdminDashboard /> : <CampusDashboard />}
           </>
         );
     }
@@ -767,7 +755,7 @@ export default function App() {
 
   return (
     <div className="bg-slate-50 min-h-screen font-sans text-slate-800 flex relative">
-      <Sidebar user={currentUser} onSwitchUser={handleUserSwitch} activeView={activeView} setActiveView={setActiveView} isOpen={isSidebarOpen} />
+      <Sidebar user={user} onLogout={onLogout} activeView={activeView} setActiveView={setActiveView} isOpen={isSidebarOpen} />
 
       <main className="flex-1 p-4 sm:p-8 overflow-y-auto">
         <Header activeView={activeView} onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
@@ -790,8 +778,8 @@ export default function App() {
         visible={isSubmissionModalVisible}
         onHide={() => setIsSubmissionModalVisible(false)}
         submission={selectedSubmission}
-        event={selectedSubmission ? EVENTS.find(e => e.id === selectedSubmission.eventId) ?? null : null}
-        campus={selectedSubmission ? campuses.find(c => c.id === selectedSubmission.campusId) ?? null : null}
+        event={selectedSubmission ? EVENTS.find(e => e.id === selectedSubmission.event_id) ?? null : null}
+        campus={selectedSubmission ? campuses.find(c => c.id === selectedSubmission.campus_id) ?? null : null}
         onEvaluate={handleEvaluation}
         mode={modalMode}
       />
@@ -799,8 +787,9 @@ export default function App() {
         visible={isNewSubmissionModalVisible}
         onHide={() => setIsNewSubmissionModalVisible(false)}
         event={selectedEvent}
-        user={currentUser}
-        onSubmit={handleNewSubmission}
+        user={user}
+        existingSubmission={selectedSubmission}
+        onSubmit={handleNewOrUpdateSubmission}
       />
       <EventSubmissionsModal
         visible={isEventSubmissionsModalVisible}
