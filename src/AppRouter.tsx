@@ -88,7 +88,7 @@ export default function AppRouter() {
           // --- CHANGE #2: SAVE CAMPUS USER TO SESSION STORAGE ---
           sessionStorage.setItem('currentUser', JSON.stringify(loggedInUser));
           setCurrentUser(loggedInUser);
-          console.log("Authentication Token:", result.data.token);
+          // console.log("Authentication Token:", result.data.token);
           return true;
         } else {
           return false;
