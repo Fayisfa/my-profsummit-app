@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import App from './App';
 import LoginPage from './LoginPage';
-import { USERS } from './database';
-import type { User, UserRole } from './types';
+import { USERS } from './data/database';
+import type { User, UserRole } from './utils/types';
 import { createCampus } from './api';
 
 // --- A component to protect routes that require authentication ---

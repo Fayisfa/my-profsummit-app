@@ -1,7 +1,7 @@
 // types.ts
 
 export type UserRole = 'State Admin' | 'Campus Unit User';
-export type View = 'Overview' | 'Events' | 'Submissions' | 'Leaderboard';
+export type View = 'Overview' | 'Events' | 'Submissions' | 'Leaderboard' | 'Document';
 export type GradingType = 'Fixed' | 'Variable' | 'Tiered' | 'Discretion';
 export type SubmissionType = 'Media Upload' | 'Quantitative Input' | 'Text Submission' | 'Simple Participation' | 'Image Upload' | 'Video Upload';
 export type SubmissionStatus = 'pending' | 'approved' | 'rejected'; // Updated to match DB
@@ -25,10 +25,11 @@ export interface Event {
   id: number;
   title: string;
   description: string;
-  submissionType: SubmissionType;
+  submissionType: SubmissionType[];
   gradingType: GradingType;
   maxPoints: number;
   deadline: string;
+  placeholder?: string;
 }
 
 export interface Submission {

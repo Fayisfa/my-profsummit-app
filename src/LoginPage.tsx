@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom'; 
-import type { UserRole } from './types';
+import type { UserRole } from './utils/types';
 
 interface LoginPageProps {
   role: UserRole;

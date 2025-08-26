@@ -1,106 +1,65 @@
 import React, { useState, useEffect } from 'react';
-import type { User, Campus, Event, Submission, View, SubmissionStatus } from './types';
-import { EVENTS } from './database'; // We only need static events now
+import type { User, Campus, Event, Submission, View, SubmissionStatus } from './utils/types';
+import { EVENTS } from './data/database'; // We only need static events now
 import { getCampuses, getSubmissions, createOrUpdateSubmission, uploadFile } from './api'; // Import our API functions
+import { ArrowRightIcon, CalendarIcon, ChevronRightIcon, HomeIcon, InboxIcon,  MenuIcon, TrophyIcon, UserGroupIcon } from './utils/Icons';
+import Sidebar from './components/Sidebar';
+import ModalWrapper from './modals/ModalWrapper';
+import NewSubmissionModal from './modals/NewSubmissionModal';
+import NotificationModal from './modals/NotificationModal';
+import EventCard from './components/EventCard';
 
-// --- (All your Icon and Helper Components remain the same) ---
-const HomeIcon = ({ className = "w-6 h-6" }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h7.5" />
-  </svg>
-);
-const CalendarIcon = ({ className = "w-6 h-6" }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0h18M-4.5 12h22.5" />
-  </svg>
-);
-const TrophyIcon = ({ className = "w-6 h-6" }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75h-9a9.75 9.75 0 01-9-9.75V5.625a1.5 1.5 0 011.5-1.5h16.5a1.5 1.5 0 011.5 1.5v3.375c0 5.385-4.365 9.75-9.75 9.75z" />
-    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75a9.75 9.75 0 00-9-9.75V5.625" />
-  </svg>
-);
-const InboxIcon = ({ className = "w-6 h-6" }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 012.012 1.244l.256.512a2.25 2.25 0 002.013 1.244h3.218a2.25 2.25 0 002.013-1.244l.256-.512a2.25 2.25 0 012.013-1.244h3.859m-19.5.338V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 00-2.12-1.588H6.88a2.25 2.25 0 00-2.12 1.588L2.35 13.177a2.25 2.25 0 00-.1.661z" />
-  </svg>
-);
-const UserGroupIcon = ({ className = "w-6 h-6" }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m-7.5-2.962c.51.054 1.022.083 1.531.083m-1.531-.083a9.06 9.06 0 01-3.443-2.12 3 3 0 01-4.11-3.563M18 18.72v-5.25m-12 5.25v-5.25m0 0l-3-1.5m3 1.5l3 1.5m-3-1.5l-3-1.5m3 1.5l3 1.5M9 11.25l3-1.5 3 1.5m-6 0l3-1.5 3 1.5M9 11.25v-5.25m3 5.25v-5.25m3 5.25v-5.25M12 6.75l3-1.5 3 1.5m-6 0l3-1.5 3 1.5" />
-  </svg>
-);
-const MenuIcon = ({ className = "w-6 h-6" }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-  </svg>
-);
-const ChevronRightIcon = ({ className = "w-6 h-6" }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-  </svg>
-);
-const ArrowRightIcon = ({ className = "w-6 h-6" }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12h15m0 0l-6.75-6.75M19.5 12l-6.75 6.75" />
-  </svg>
-);
-const LogoutIcon = ({ className = "w-6 h-6" }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
-  </svg>
-);
 
-// --- HELPER COMPONENTS ---
-// ... (Sidebar, Header, OverviewCard, Leaderboard, EventCard, ModalWrapper components remain unchanged) ...
-const Sidebar: React.FC<{
-  user: User;
-  onLogout: () => void;
-  activeView: View;
-  setActiveView: (view: View) => void;
-  isOpen: boolean;
-}> = ({ user, onLogout, activeView, setActiveView, isOpen }) => {
-  const navItems = [
-    { name: 'Overview', icon: HomeIcon },
-    { name: 'Events', icon: CalendarIcon },
-    { name: 'Submissions', icon: InboxIcon },
-    { name: 'Leaderboard', icon: TrophyIcon },
-  ];
 
-  return (
-    <aside className={`w-64 flex-shrink-0 bg-white border-r border-slate-200 flex flex-col transition-transform duration-300 ease-in-out 
-  md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'} absolute md:relative z-20`}
-    >
-      <div className="h-16 flex items-center px-6 border-b border-slate-200">
-        <UserGroupIcon className="w-8 h-8 text-indigo-600" />
-        <span className="ml-2 font-bold text-lg">CampusDash</span>
-      </div>
-      <nav className="flex-1 px-4 py-6 space-y-2">
-        {navItems.map(item => (
-          <a
-            key={item.name}
-            href="#"
-            onClick={(e) => { e.preventDefault(); setActiveView(item.name as View); }}
-            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors ${activeView === item.name ? 'bg-indigo-50 text-indigo-600 font-semibold' : 'text-slate-500 hover:bg-slate-100'}`}
-          >
-            <item.icon className="w-5 h-5" />
-            <span>{item.name}</span>
-          </a>
-        ))}
-      </nav>
-      <div className="p-4 border-t border-slate-200">
-        <p className="px-4 text-sm font-semibold text-slate-700">{user.name}</p>
-        <p className="px-4 text-xs text-slate-500 mb-2">{user.role}</p>
-        <button
-          onClick={onLogout}
-          className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-slate-500 hover:bg-rose-50 hover:text-rose-600"
-        >
-          <LogoutIcon className="w-5 h-5" />
-          <span className="font-semibold">Logout</span>
-        </button>
-      </div>
-    </aside>
-  );
+// --- NEW ProgressCard COMPONENT ---
+const ProgressCard: React.FC<{ submissions: Submission[]; totalEvents: number }> = ({ submissions, totalEvents }) => {
+    const completedCount = submissions.length;
+    const progressPercentage = totalEvents > 0 ? (completedCount / totalEvents) * 100 : 0;
+
+    const getMotivationalMessage = () => {
+        if (progressPercentage < 25) return "Let's get started! Every submission counts.";
+        if (progressPercentage < 50) return "Great progress! Keep up the momentum.";
+        if (progressPercentage < 75) return "You're doing amazing! Almost there.";
+        if (progressPercentage < 100) return "Just a few more to go! Incredible effort.";
+        return "Congratulations! All events completed!";
+    };
+
+    return (
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
+            <h2 className="text-xl font-bold text-slate-800 mb-2">Your Progress</h2>
+            <p className="text-sm text-slate-500 mb-4">{getMotivationalMessage()}</p>
+            <div className="flex justify-between items-center mb-1">
+                <span className="text-sm font-medium text-indigo-700">Events Completed</span>
+                <span className="text-sm font-bold">{completedCount} / {totalEvents}</span>
+            </div>
+            <div className="w-full bg-slate-200 rounded-full h-2.5">
+                <div 
+                    className="bg-indigo-600 h-2.5 rounded-full transition-all duration-500" 
+                    style={{ width: `${progressPercentage}%` }}
+                ></div>
+            </div>
+        </div>
+    );
+};
+
+const DocumentViewer: React.FC = () => {
+    // Replace this with the actual URL to your hosted PDF file
+    const pdfUrl = "/assets/letter.pdf";
+
+    return (
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 h-[80vh] flex flex-col">
+            <div className="p-4 border-b">
+                <h2 className="text-xl font-bold text-slate-800">Document Viewer</h2>
+            </div>
+            <div className="flex-1 p-2">
+                <iframe
+                    src={pdfUrl}
+                    title="Document Viewer"
+                    className="w-full h-full border-0 rounded-b-xl"
+                />
+            </div>
+        </div>
+    );
 };
 
 const Header: React.FC<{ activeView: View; onMenuClick: () => void; }> = ({ activeView, onMenuClick }) => (
@@ -168,88 +127,7 @@ const Leaderboard: React.FC<{ campuses: Campus[] }> = ({ campuses }) => {
   );
 };
 
-const EventCard: React.FC<{ event: Event, user: User, onAction: (event: Event) => void, submissions: Submission[] }> = ({ event, user, onAction, submissions }) => {
-  const existingSubmission = user.campusId ? submissions.find(s => s.event_id === event.id && s.campus_id === String(user.campusId)) : null;
 
-  const getActionLabel = () => {
-    if (user.role === 'Campus Unit User') {
-      if (existingSubmission) {
-        return existingSubmission.status === 'pending' ? 'Update Entry' : 'View Entry';
-      }
-      return 'Submit Entry';
-    }
-    if (user.role.includes('Admin')) return 'View Submissions';
-    return 'View Details';
-  };
-
-  const getSubmissionTypeColor = (type: any) => ({
-    'Media Upload': 'bg-purple-100 text-purple-800',
-    'Quantitative Input': 'bg-blue-100 text-blue-800',
-    'Text Submission': 'bg-green-100 text-green-800',
-    'Simple Participation': 'bg-slate-100 text-slate-800',
-    'Image Upload': 'bg-pink-100 text-pink-800',
-    'Video Upload': 'bg-red-100 text-red-800',
-  }[type] || 'bg-slate-100 text-slate-800');
-
-  const getGradingTypeColor = (type: any) => ({
-    'Fixed': 'bg-sky-100 text-sky-800',
-    'Variable': 'bg-orange-100 text-orange-800',
-    'Tiered': 'bg-fuchsia-100 text-fuchsia-800',
-    'Discretion': 'bg-rose-100 text-rose-800'
-  }[type] || 'bg-slate-100 text-slate-800');
-
-
-
-  return (
-    <div className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-300 border border-slate-200">
-      <div className="p-6">
-        <div className="flex justify-between items-start gap-4 mb-3">
-          <h3 className="text-lg font-bold text-slate-800">{event.title}</h3>
-          <span className="bg-indigo-100 text-indigo-800 px-2.5 py-1 rounded-full text-xs font-bold">
-            {event.maxPoints} pts
-          </span>
-        </div>
-        <p className="text-slate-600 mb-4 text-sm">{event.description}</p>
-        <div className="flex flex-wrap gap-2 mb-4">
-          <span className={`px-2 py-1 text-xs rounded-full font-medium ${getSubmissionTypeColor(event.submissionType)}`}>
-            {event.submissionType}
-          </span>
-          <span className={`px-2 py-1 text-xs rounded-full font-medium ${getGradingTypeColor(event.gradingType)}`}>
-            {event.gradingType}
-          </span>
-        </div>
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-4 border-t border-slate-100">
-          <div className="flex items-center text-sm text-slate-500">
-            <CalendarIcon className="w-4 h-4 mr-1.5" />
-            Deadline: {event.deadline}
-          </div>
-          <button
-            onClick={() => onAction(event)}
-            className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-colors flex items-center gap-2 shadow-sm hover:shadow-md"
-            aria-label={`${getActionLabel()} for ${event.title}`}
-          >
-            {getActionLabel()}
-            <ArrowRightIcon className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const ModalWrapper: React.FC<{ visible: boolean; onHide: () => void; children: React.ReactNode; size?: 'lg' | 'xl' | '2xl' | '3xl' }> = ({ visible, onHide, children, size = '2xl' }) => {
-  if (!visible) return null;
-  const sizeClasses = {
-    'lg': 'max-w-lg', 'xl': 'max-w-xl', '2xl': 'max-w-2xl', '3xl': 'max-w-3xl',
-  };
-  return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4" onClick={onHide}>
-      <div className={`bg-white rounded-xl shadow-xl w-full ${sizeClasses[size]} max-h-[90vh] flex flex-col`} onClick={e => e.stopPropagation()}>
-        {children}
-      </div>
-    </div>
-  );
-};
 
 const SubmissionModal: React.FC<{
   visible: boolean; onHide: () => void; submission: Submission | null; event: Event | null; campus: Campus | null;
@@ -384,89 +262,6 @@ const SubmissionModal: React.FC<{
   );
 };
 
-const NewSubmissionModal: React.FC<{
-  visible: boolean;
-  onHide: () => void;
-  event: Event | null;
-  user: User;
-  onSubmit: (submissionData: Partial<Submission>, file?: File | null) => void;
-  existingSubmission: Submission | null; // New prop
-}> = ({ visible, onHide, event, user, onSubmit, existingSubmission }) => {
-    const [link, setLink] = useState('');
-    const [text, setText] = useState('');
-    const [quantity, setQuantity] = useState(1);
-    const [file, setFile] = useState<File | null>(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
-    useEffect(() => {
-        if (visible && event) {
-            // Pre-fill form if an existing submission is provided
-            if (existingSubmission) {
-                setLink(existingSubmission.data?.link || '');
-                setText(existingSubmission.data?.text || '');
-                setQuantity(existingSubmission.data?.quantity || 1);
-            } else {
-            // Reset form for a new submission
-                setLink('');
-                setText('');
-                setQuantity(1);
-                setFile(null);
-            }
-        }
-    }, [visible, event, existingSubmission]);
-
-    if (!visible || !event) return null;
-
-    const handleSubmit = async () => {
-        setIsSubmitting(true);
-        const data: Submission['data'] = {};
-        switch (event.submissionType) {
-            case 'Media Upload': data.link = link; break;
-            case 'Text Submission': data.text = text; break;
-            case 'Quantitative Input': data.quantity = quantity; break;
-            // For file uploads, the URL will be added in the main handler
-        }
-        await onSubmit({ data }, file);
-        setIsSubmitting(false);
-        onHide();
-    };
-
-    const renderFormFields = () => {
-        switch (event?.submissionType) {
-            case 'Media Upload':
-                return <div><label className="text-sm font-medium text-slate-700 mb-1 block">Social Media Link</label><input type="url" value={link} onChange={e => setLink(e.target.value)} className="w-full p-2 border border-slate-300 rounded-lg" placeholder="https://..." /></div>;
-            case 'Text Submission':
-                return <div><label className="text-sm font-medium text-slate-700 mb-1 block">Report</label><textarea value={text} onChange={e => setText(e.target.value)} rows={5} className="w-full p-2 border border-slate-300 rounded-lg" /></div>;
-            case 'Quantitative Input':
-                return <div><label className="text-sm font-medium text-slate-700 mb-1 block">Quantity</label><input type="number" value={quantity} onChange={e => setQuantity(Number(e.target.value))} min="1" className="w-full p-2 border border-slate-300 rounded-lg" /></div>;
-            case 'Image Upload':
-                return <div><label className="text-sm font-medium text-slate-700 mb-1 block">Image Upload</label><input type="file" accept="image/*" onChange={e => setFile(e.target.files ? e.target.files[0] : null)} className="w-full p-2 border border-slate-300 rounded-lg" /></div>;
-            case 'Video Upload':
-                return <div><label className="text-sm font-medium text-slate-700 mb-1 block">Video Upload</label><input type="file" accept="video/*" onChange={e => setFile(e.target.files ? e.target.files[0] : null)} className="w-full p-2 border border-slate-300 rounded-lg" /></div>;
-            case 'Simple Participation':
-                return <p className="text-center text-slate-600 bg-slate-50 p-4 rounded-lg">Clicking "Submit" will confirm your campus's participation in this event.</p>
-            default: return null;
-        }
-    }
-
-    return (
-        <ModalWrapper visible={visible} onHide={onHide} size="lg">
-            <div className="p-6">
-                <h2 className="text-2xl font-bold mb-2">{existingSubmission ? 'Update Submission' : event.title}</h2>
-                <p className="text-slate-600 mb-6">{existingSubmission ? 'Update your entry for this event.' : 'Submit your entry for this event.'}</p>
-                <div className="space-y-4 mb-6">
-                    {renderFormFields()}
-                </div>
-                <div className="flex justify-end gap-4">
-                    <button onClick={onHide} className="bg-slate-200 text-slate-800 px-4 py-2 rounded-lg hover:bg-slate-300" disabled={isSubmitting}>Cancel</button>
-                    <button onClick={handleSubmit} className="bg-indigo-600 text-white px-6 py-2 rounded-lg" disabled={isSubmitting}>
-                        {isSubmitting ? 'Submitting...' : (existingSubmission ? 'Update Entry' : 'Submit Entry')}
-                    </button>
-                </div>
-            </div>
-        </ModalWrapper>
-    );
-};
 
 const EventSubmissionsModal: React.FC<{
   visible: boolean; onHide: () => void; event: Event | null; submissions: Submission[]; campuses: Campus[];
@@ -525,6 +320,14 @@ export default function App({ user, onLogout }: AppProps) {
   const [isNewSubmissionModalVisible, setIsNewSubmissionModalVisible] = useState(false);
   const [isEventSubmissionsModalVisible, setIsEventSubmissionsModalVisible] = useState(false);
 
+  const [notification, setNotification] = useState<{ visible: boolean; type: 'success' | 'error'; message: string }>({
+    visible: false,
+    type: 'success',
+    message: ''
+  });
+
+
+
   useEffect(() => {
     const loadData = async () => {
       const [campusData, submissionData] = await Promise.all([
@@ -575,18 +378,18 @@ export default function App({ user, onLogout }: AppProps) {
     // If a file was provided with the form, upload it first.
     if (file) {
       const uploadResult = await uploadFile(file);
-      // If the upload is successful, add the returned URL to our submission data object.
       if (uploadResult.success) {
         if (finalSubmissionData.data) {
-          if (selectedEvent.submissionType === 'Image Upload') {
+          // --- CHANGE THIS ---
+          if (selectedEvent.submissionType.includes('Image Upload')) {
             finalSubmissionData.data.image = uploadResult.url;
-          } else if (selectedEvent.submissionType === 'Video Upload') {
+          } else if (selectedEvent.submissionType.includes('Video Upload')) {
             finalSubmissionData.data.video = uploadResult.url;
           }
+          // --- END CHANGE ---
         }
       } else {
-        // If the upload fails, alert the user and stop the process.
-        alert(`Upload failed: ${uploadResult.error}`);
+        setNotification({ visible: true, type: 'error', message: `Upload failed: ${uploadResult.error}` });
         return;
       }
     }
@@ -609,10 +412,11 @@ export default function App({ user, onLogout }: AppProps) {
       // ...fetch the latest list of all submissions to ensure the UI is up-to-date.
       const newSubmissions = await getSubmissions();
       setSubmissions(newSubmissions);
-      alert(result.message); // Notify the user of success.
+      setNotification({ visible: true, type: 'success', message: result.message });
     } else {
       // If there was an error, show it to the user.
-      alert(`Submission failed: ${result.error}`);
+      setNotification({ visible: true, type: 'error', message: `Submission failed: ${result.error}` });
+
     }
   };
 
@@ -700,29 +504,32 @@ export default function App({ user, onLogout }: AppProps) {
   );
 
   const CampusDashboard = () => (
-    <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold text-slate-800">My Submissions</h2>
-        <span className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm font-medium">{campusSubmissions.length} total</span>
-      </div>
-      <div className="space-y-4">
-        {campusSubmissions.map((submission) => (
-          <div key={submission.id} className="border border-slate-200 rounded-xl p-4 hover:shadow-md transition-shadow cursor-pointer" onClick={() => openSubmissionDetailModal(submission, 'view')}>
-            <div className="flex justify-between items-start mb-2">
-              <h3 className="font-bold text-slate-800">{EVENTS.find(e => e.id === submission.event_id)?.title}</h3>
-              <span className={`px-2 py-1 text-xs font-medium rounded-full ${{
-                'approved': 'bg-emerald-100 text-emerald-800',
-                'rejected': 'bg-rose-100 text-rose-800',
-                'pending': 'bg-amber-100 text-amber-800'
-              }[submission.status] || 'bg-slate-100 text-slate-800'
-                }`}>{submission.status}</span>
+    <div className="space-y-8">
+        <ProgressCard submissions={campusSubmissions} totalEvents={EVENTS.length} />
+      <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-bold text-slate-800">My Submissions</h2>
+          <span className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm font-medium">{campusSubmissions.length} total</span>
+        </div>
+        <div className="space-y-4">
+          {campusSubmissions.map((submission) => (
+            <div key={submission.id} className="border border-slate-200 rounded-xl p-4 hover:shadow-md transition-shadow cursor-pointer" onClick={() => openSubmissionDetailModal(submission, 'view')}>
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="font-bold text-slate-800">{EVENTS.find(e => e.id === submission.event_id)?.title}</h3>
+                <span className={`px-2 py-1 text-xs font-medium rounded-full ${{
+                  'approved': 'bg-emerald-100 text-emerald-800',
+                  'rejected': 'bg-rose-100 text-rose-800',
+                  'pending': 'bg-amber-100 text-amber-800'
+                }[submission.status] || 'bg-slate-100 text-slate-800'
+                  }`}>{submission.status}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div><p className="text-xs text-slate-500">Submitted</p><p>{submission.created_at}</p></div>
+                <div><p className="text-xs text-slate-500">Points</p><p className={`font-bold ${submission.marks ? 'text-indigo-600' : 'text-slate-500'}`}>{submission.marks ?? '–'}</p></div>
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div><p className="text-xs text-slate-500">Submitted</p><p>{submission.created_at}</p></div>
-              <div><p className="text-xs text-slate-500">Points</p><p className={`font-bold ${submission.marks ? 'text-indigo-600' : 'text-slate-500'}`}>{submission.marks ?? '–'}</p></div>
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -742,6 +549,8 @@ export default function App({ user, onLogout }: AppProps) {
         return user.role === 'State Admin' ? <AdminDashboard /> : <CampusDashboard />;
       case 'Leaderboard':
         return <Leaderboard campuses={campuses} />;
+      case 'Document':
+        return <DocumentViewer />;
       case 'Overview':
       default:
         return (
@@ -755,9 +564,17 @@ export default function App({ user, onLogout }: AppProps) {
 
   return (
     <div className="bg-slate-50 min-h-screen font-sans text-slate-800 flex relative">
-      <Sidebar user={user} onLogout={onLogout} activeView={activeView} setActiveView={setActiveView} isOpen={isSidebarOpen} />
+      <Sidebar 
+        user={user} 
+        onLogout={onLogout} 
+        activeView={activeView} 
+        setActiveView={setActiveView} 
+        isOpen={isSidebarOpen} 
+        setIsOpen={setIsSidebarOpen} 
+      />
 
-      <main className="flex-1 p-4 sm:p-8 overflow-y-auto">
+
+      <main className="flex-1 p-4 sm:p-8 overflow-y-auto lg:ml-64">
         <Header activeView={activeView} onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
         <div className="mt-6">
           <div className="flex flex-col xl:flex-row gap-8">
@@ -799,6 +616,12 @@ export default function App({ user, onLogout }: AppProps) {
         campuses={campuses}
         onSelectSubmission={openSubmissionDetailModal}
       />
+      <NotificationModal
+                visible={notification.visible}
+                onHide={() => setNotification({ ...notification, visible: false })}
+                type={notification.type}
+                message={notification.message}
+            />
     </div>
   );
 }
