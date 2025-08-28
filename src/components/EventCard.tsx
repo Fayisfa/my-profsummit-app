@@ -61,10 +61,10 @@ const EventCard: React.FC<EventCardProps> = ({ event, user, onAction, submission
                     </span> */}
                 </div>
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-4 border-t border-slate-100">
-                    <div className="flex items-center text-sm text-slate-500">
+                    {/* <div className="flex items-center text-sm text-slate-500">
                         <CalendarIcon className="w-4 h-4 mr-1.5" />
                         Deadline: {event.deadline}
-                    </div>
+                    </div> */}
                     {/* {existingSubmission && (
                         <div className="flex items-center text-sm text-emerald-600 font-semibold mt-2 sm:mt-0">
                             <CheckIcon className="w-4 h-4 mr-1.5" />
