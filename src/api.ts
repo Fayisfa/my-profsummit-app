@@ -182,9 +182,9 @@ export const updateSubmissionStatus = async (updateData: any, token: any) => {
 
 
 // In api.ts
-export const getRegisteredData = async () => {
+export const getRegisteredData = async (districtName: string) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/registrationData/getRegisteredData.php`);
+    const response = await fetch(`${API_BASE_URL}/registrationData/getRegisteredData.php?district=${encodeURIComponent(districtName)}`);
     console.log(response)
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
