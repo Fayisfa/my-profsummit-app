@@ -19,23 +19,7 @@ const ProtectedRoute = ({ user, children }: ProtectedRouteProps) => {
   return <>{children}</>;
 };
 
-// --- A simple component to let the user select their role ---
-const RoleSelection = () => (
-  <div className="flex items-center justify-center min-h-screen bg-slate-100">
-    <div className="p-10 bg-white rounded-2xl shadow-xl text-center">
-      <h1 className="text-3xl font-bold text-slate-800 mb-2">Welcome</h1>
-      <p className="text-slate-500 mb-8">Please select your login type to continue.</p>
-      <div className="flex flex-col gap-4">
-        <a href="/admin-login" className="block w-full px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors text-center">
-          State Admin Login
-        </a>
-        <a href="/campus-login" className="block w-full px-6 py-3 bg-slate-600 text-white font-semibold rounded-lg hover:bg-slate-700 transition-colors text-center">
-          Campus User Login
-        </a>
-      </div>
-    </div>
-  </div>
-);
+
 
 export default function AppRouter() {
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
@@ -46,13 +30,31 @@ export default function AppRouter() {
   const handleLogin = async (username: string, password: string, role: UserRole) => {
     // Admin login remains the same
     if (role === 'State Admin') {
-        const user = USERS.find(u => u.name === username && u.role === role);
-        if (user) {
-            sessionStorage.setItem('currentUser', JSON.stringify(user));
-            setCurrentUser(user);
-            return true;
+      try {
+        const response = await fetch('https://mediumaquamarine-eel-107102.hostingersite.com/app/admin_login.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        });
+
+        const result = await response.json();
+
+        if (result.success && result.data) {
+          const loggedInUser: User = {
+            id: result.data.id,
+            name: result.data.name,
+            role: result.data.role,
+          };
+          sessionStorage.setItem('currentUser', JSON.stringify(loggedInUser));
+          setCurrentUser(loggedInUser);
+          return true;
+        } else {
+          return false;
         }
+      } catch (error) {
+        console.error("Admin login error:", error);
         return false;
+      }
     }
 
     // API login for Campus and District users
@@ -91,7 +93,7 @@ export default function AppRouter() {
           } else {
             return false; // Unknown role
           }
-          
+
           sessionStorage.setItem('currentUser', JSON.stringify(loggedInUser));
           setCurrentUser(loggedInUser);
           return true;
@@ -103,22 +105,22 @@ export default function AppRouter() {
         return false;
       }
     }
-    
+
     return false;
   };
 
   const getDashboardPath = () => {
-      if (!currentUser) return '/';
-      switch (currentUser.role) {
-          case 'Campus Unit User':
-              return '/dashboard';
-          case 'District':
-              return '/district-dashboard';
-          case 'State Admin':
-              return '/dashboard'; // Or a separate admin dashboard
-          default:
-              return '/';
-      }
+    if (!currentUser) return '/';
+    switch (currentUser.role) {
+      case 'Campus Unit User':
+        return '/dashboard';
+      case 'District':
+        return '/district-dashboard';
+      case 'State Admin':
+        return '/dashboard'; // Or a separate admin dashboard
+      default:
+        return '/';
+    }
   };
 
   const handleLogout = () => {
@@ -127,59 +129,39 @@ export default function AppRouter() {
     setCurrentUser(null);
   };
 
-  // return (
-  //   <BrowserRouter>
-  //     <Routes>
-  //       <Route path="/" element={!currentUser ? <RoleSelection /> : <Navigate to="/dashboard" />} />
-        
-  //       <Route 
-  //         path="/admin-login" 
-  //         element={<LoginPage role="State Admin" onLogin={handleLogin} />} 
-  //       />
-  //       <Route 
-  //         path="/campus-login" 
-  //         element={<LoginPage role="Campus Unit User" onLogin={handleLogin} />} 
-  //       />
-        
-  //       <Route 
-  //         path="/dashboard" 
-  //         element={
-  //           <ProtectedRoute user={currentUser}>
-  //             <App user={currentUser!} onLogout={handleLogout} />
-  //           </ProtectedRoute>
-  //         } 
-  //       />
-  //     </Routes>
-  //   </BrowserRouter>
-  // );
+
   return (
-  <BrowserRouter>
+    <BrowserRouter>
       <Routes>
         <Route path="/" element={!currentUser ? <LoginPage role="Campus Unit User" onLogin={handleLogin} /> : <Navigate to={getDashboardPath()} />} />
-        
-        <Route 
-          path="/admin-login" 
-          element={<LoginPage role="State Admin" onLogin={handleLogin} />} 
-        />
-        
-        <Route 
-          path="/dashboard" 
-          element={
-            <ProtectedRoute user={currentUser}>
-              {currentUser?.role === 'Campus Unit User' && <App user={currentUser} onLogout={handleLogout} />}
-            </ProtectedRoute>
-          } 
+
+        <Route
+          path="/admin-login"
+          element={<LoginPage role="State Admin" onLogin={handleLogin} />}
         />
 
-        <Route 
-          path="/district-dashboard" 
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute user={currentUser}>
+              {/* --- THIS IS THE FIX --- */}
+              {/* Allow rendering if the role is EITHER 'Campus Unit User' OR 'State Admin' */}
+              {(currentUser?.role === 'Campus Unit User' || currentUser?.role === 'State Admin') && (
+                <App user={currentUser} onLogout={handleLogout} />
+              )}
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/district-dashboard"
           element={
             <ProtectedRoute user={currentUser}>
               {currentUser?.role === 'District' && <DistrictDashboard user={currentUser} onLogout={handleLogout} />}
             </ProtectedRoute>
-          } 
+          }
         />
       </Routes>
     </BrowserRouter>
-);
+  );
 }

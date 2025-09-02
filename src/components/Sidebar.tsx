@@ -10,6 +10,7 @@ import {
     LogoutIcon,
     DocumentIcon,
     XIcon,
+    BarChartIcon,
 } from '../utils/Icons';
 import profSummitP from '/assets/profsummitP.png';
 
@@ -35,6 +36,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         { name: 'Events', icon: CalendarIcon },
         { name: 'Submissions', icon: InboxIcon },
         { name: 'Leaderboard', icon: TrophyIcon },
+        ...(user.role === 'State Admin' ? [{ name: 'Registration Overview', icon: BarChartIcon }] : []),
         { name: 'Document', icon: DocumentIcon },
     ];
 

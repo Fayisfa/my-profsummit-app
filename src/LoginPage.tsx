@@ -22,11 +22,6 @@ const LockIcon = ({ className = "w-5 h-5" }) => (
     </svg>
 );
 
-const LogoIcon = ({ className = "w-12 h-12" }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m-7.5-2.962c.51.054 1.022.083 1.531.083m-1.531-.083a9.06 9.06 0 01-3.443-2.12 3 3 0 01-4.11-3.563M18 18.72v-5.25m-12 5.25v-5.25m0 0l-3-1.5m3 1.5l3 1.5m-3-1.5l-3-1.5m3 1.5l3 1.5M9 11.25l3-1.5 3 1.5m-6 0l3-1.5 3 1.5M9 11.25v-5.25m3 5.25v-5.25m3 5.25v-5.25M12 6.75l3-1.5 3 1.5m-6 0l3-1.5 3 1.5" />
-    </svg>
-);
 
 
 export default function LoginPage({ role, onLogin }: LoginPageProps) {
@@ -53,7 +48,6 @@ export default function LoginPage({ role, onLogin }: LoginPageProps) {
     }
   };
 
-  const placeholderUsername = role === 'State Admin' ? 'Super Admin' : 'MAVE1044';
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-slate-100 font-sans px-4">

@@ -1,7 +1,7 @@
 // types.ts
 
 export type UserRole = 'State Admin' | 'Campus Unit User' | 'District';
-export type View = 'Overview' | 'Events' | 'Submissions' | 'Leaderboard' | 'Document';
+export type View = 'Overview' | 'Events' | 'Submissions' | 'Leaderboard' | 'Document'| 'Registration Overview';
 export type GradingType = 'Fixed' | 'Variable' | 'Tiered' | 'Discretion';
 export type SubmissionType = 'Media Upload' | 'Quantitative Input' | 'Text Submission' | 'Simple Participation' | 'Image Upload' | 'Video Upload';
 export type SubmissionStatus = 'pending' | 'approved' | 'rejected'; // Updated to match DB
@@ -59,4 +59,6 @@ export interface RegistrationData {
     native_division: string;
     attended_2023: boolean;
     created_at: string;
+    updated_at: string;
+
 }

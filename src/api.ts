@@ -195,3 +195,17 @@ export const getRegisteredData = async (districtName: string) => {
     return []; // Return an empty array on failure
   }
 };
+
+
+export const getAllRegisteredData = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/registrationData/getAllRegisteredData.php`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Failed to fetch all registered data:', error);
+    return []; // Return an empty array on failure
+  }
+};

@@ -2,64 +2,65 @@ import React, { useState, useEffect } from 'react';
 import type { User, Campus, Event, Submission, View, SubmissionStatus } from './utils/types';
 import { EVENTS } from './data/database'; // We only need static events now
 import { getCampuses, getSubmissions, createOrUpdateSubmission, uploadFile } from './api'; // Import our API functions
-import { ArrowRightIcon, CalendarIcon, ChevronRightIcon, HomeIcon, InboxIcon,  MenuIcon, TrophyIcon, UserGroupIcon } from './utils/Icons';
+import { ArrowRightIcon, CalendarIcon, ChevronRightIcon, HomeIcon, InboxIcon, MenuIcon, TrophyIcon, UserGroupIcon } from './utils/Icons';
 import Sidebar from './components/Sidebar';
 import ModalWrapper from './modals/ModalWrapper';
 import NewSubmissionModal from './modals/NewSubmissionModal';
 import NotificationModal from './modals/NotificationModal';
 import EventCard from './components/EventCard';
+import StateDashboard from './pages/StateDashboard';
 
 
 
 // --- NEW ProgressCard COMPONENT ---
 const ProgressCard: React.FC<{ submissions: Submission[]; totalEvents: number }> = ({ submissions, totalEvents }) => {
-    const completedCount = submissions.length;
-    const progressPercentage = totalEvents > 0 ? (completedCount / totalEvents) * 100 : 0;
+  const completedCount = submissions.length;
+  const progressPercentage = totalEvents > 0 ? (completedCount / totalEvents) * 100 : 0;
 
-    const getMotivationalMessage = () => {
-        if (progressPercentage < 25) return "Let's get started! Every submission counts.";
-        if (progressPercentage < 50) return "Great progress! Keep up the momentum.";
-        if (progressPercentage < 75) return "You're doing amazing! Almost there.";
-        if (progressPercentage < 100) return "Just a few more to go! Incredible effort.";
-        return "Congratulations! All events completed!";
-    };
+  const getMotivationalMessage = () => {
+    if (progressPercentage < 25) return "Let's get started! Every submission counts.";
+    if (progressPercentage < 50) return "Great progress! Keep up the momentum.";
+    if (progressPercentage < 75) return "You're doing amazing! Almost there.";
+    if (progressPercentage < 100) return "Just a few more to go! Incredible effort.";
+    return "Congratulations! All events completed!";
+  };
 
-    return (
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
-            <h2 className="text-xl font-bold text-slate-800 mb-2">Your Progress</h2>
-            <p className="text-sm text-slate-500 mb-4">{getMotivationalMessage()}</p>
-            <div className="flex justify-between items-center mb-1">
-                <span className="text-sm font-medium text-indigo-700">Events Completed</span>
-                <span className="text-sm font-bold">{completedCount} / {totalEvents}</span>
-            </div>
-            <div className="w-full bg-slate-200 rounded-full h-2.5">
-                <div 
-                    className="bg-indigo-600 h-2.5 rounded-full transition-all duration-500" 
-                    style={{ width: `${progressPercentage}%` }}
-                ></div>
-            </div>
-        </div>
-    );
+  return (
+    <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
+      <h2 className="text-xl font-bold text-slate-800 mb-2">Your Progress</h2>
+      <p className="text-sm text-slate-500 mb-4">{getMotivationalMessage()}</p>
+      <div className="flex justify-between items-center mb-1">
+        <span className="text-sm font-medium text-indigo-700">Events Completed</span>
+        <span className="text-sm font-bold">{completedCount} / {totalEvents}</span>
+      </div>
+      <div className="w-full bg-slate-200 rounded-full h-2.5">
+        <div
+          className="bg-indigo-600 h-2.5 rounded-full transition-all duration-500"
+          style={{ width: `${progressPercentage}%` }}
+        ></div>
+      </div>
+    </div>
+  );
 };
 
 const DocumentViewer: React.FC = () => {
-    // Replace this with the actual URL to your hosted PDF file
-    const pdfUrl = "/assets/letter.pdf";
+  // Replace this with the actual URL to your hosted PDF file
+  const pdfUrl = "/assets/letter.pdf";
 
-    return (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 h-[80vh] flex flex-col">
-            <div className="p-4 border-b">
-                <h2 className="text-xl font-bold text-slate-800">Document Viewer</h2>
-            </div>
-            <div className="flex-1 p-2">
-                <iframe
-                    src={pdfUrl}
-                    title="Document Viewer"
-                    className="w-full h-full border-0 rounded-b-xl"
-                />
-            </div>
-        </div>
-    );
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200 h-[80vh] flex flex-col">
+      <div className="p-4 border-b">
+        <h2 className="text-xl font-bold text-slate-800">Document Viewer</h2>
+      </div>
+      <div className="flex-1 p-2">
+        <iframe
+          src={pdfUrl}
+          title="Document Viewer"
+          className="w-full h-full border-0 rounded-b-xl"
+        />
+      </div>
+    </div>
+  );
 };
 
 const Header: React.FC<{ activeView: View; onMenuClick: () => void; }> = ({ activeView, onMenuClick }) => (
@@ -208,8 +209,32 @@ const SubmissionModal: React.FC<{
             {submission.data.link && <p><strong>Link:</strong> <a href={submission.data.link} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">{submission.data.link}</a></p>}
             {submission.data.text && <p><strong>Report:</strong> <span className="text-slate-700 whitespace-pre-wrap">{submission.data.text}</span></p>}
             {submission.data.quantity && <p><strong>Quantity:</strong> <span className="font-semibold text-slate-800">{submission.data.quantity}</span></p>}
-            {submission.data.image && <p><strong>Image File:</strong> <span className="text-slate-700">{submission.data.image}</span></p>}
-            {submission.data.video && <p><strong>Video File:</strong> <span className="text-slate-700">{submission.data.video}</span></p>}
+            {/* If there is an image URL, display it using an <img> tag */}
+            {submission.data.image && (
+              <div>
+                <p><strong>Image Submission:</strong></p>
+                <img
+                  src={submission.data.image}
+                  alt="User submission"
+                  className="mt-2 w-full h-auto rounded-lg shadow-md"
+                />
+              </div>
+            )}
+
+            {/* If there is a video URL, display it as a clickable link */}
+            {submission.data.video && (
+              <p>
+                <strong>Video Submission:</strong>{' '}
+                <a
+                  href={submission.data.video}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-indigo-600 hover:underline"
+                >
+                  Click here to view video
+                </a>
+              </p>
+            )}
             {submission.data && Object.keys(submission.data).length === 0 && <p className="text-slate-500">This was a simple participation event.</p>}
           </div>
         </div>
@@ -505,7 +530,7 @@ export default function App({ user, onLogout }: AppProps) {
 
   const CampusDashboard = () => (
     <div className="space-y-8">
-        <ProgressCard submissions={campusSubmissions} totalEvents={EVENTS.length} />
+      <ProgressCard submissions={campusSubmissions} totalEvents={EVENTS.length} />
       <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-slate-800">My Submissions</h2>
@@ -551,6 +576,11 @@ export default function App({ user, onLogout }: AppProps) {
         return <Leaderboard campuses={campuses} />;
       case 'Document':
         return <DocumentViewer />;
+      case 'Registration Overview':
+        // Only render this if the user is a State Admin
+        return user.role === 'State Admin' ? <StateDashboard user={user} onLogout={function (): void {
+          throw new Error('Function not implemented.');
+        }} /> : null;
       case 'Overview':
       default:
         return (
@@ -564,13 +594,13 @@ export default function App({ user, onLogout }: AppProps) {
 
   return (
     <div className="bg-slate-50 min-h-screen font-sans text-slate-800 flex relative">
-      <Sidebar 
-        user={user} 
-        onLogout={onLogout} 
-        activeView={activeView} 
-        setActiveView={setActiveView} 
-        isOpen={isSidebarOpen} 
-        setIsOpen={setIsSidebarOpen} 
+      <Sidebar
+        user={user}
+        onLogout={onLogout}
+        activeView={activeView}
+        setActiveView={setActiveView}
+        isOpen={isSidebarOpen}
+        setIsOpen={setIsSidebarOpen}
       />
 
 
@@ -617,11 +647,11 @@ export default function App({ user, onLogout }: AppProps) {
         onSelectSubmission={openSubmissionDetailModal}
       />
       <NotificationModal
-                visible={notification.visible}
-                onHide={() => setNotification({ ...notification, visible: false })}
-                type={notification.type}
-                message={notification.message}
-            />
+        visible={notification.visible}
+        onHide={() => setNotification({ ...notification, visible: false })}
+        type={notification.type}
+        message={notification.message}
+      />
     </div>
   );
 }
