@@ -5,6 +5,7 @@ import LoginPage from './LoginPage';
 import { USERS } from './data/database';
 import type { User, UserRole } from './utils/types';
 import { createCampus } from './api';
+import DistrictDashboard from './pages/DistrictDashboard';
 
 // --- A component to protect routes that require authentication ---
 interface ProtectedRouteProps {
@@ -43,52 +44,56 @@ export default function AppRouter() {
   });
 
   const handleLogin = async (username: string, password: string, role: UserRole) => {
-    // 1. Keep the original mock login for Admins
+    // Admin login remains the same
     if (role === 'State Admin') {
-      const user = USERS.find(u => u.name === username && u.role === role);
-      if (user) {
-        // --- CHANGE #1: SAVE ADMIN TO SESSION STORAGE ---
-        sessionStorage.setItem('currentUser', JSON.stringify(user));
-        setCurrentUser(user);
-        return true;
-      }
-      return false;
+        const user = USERS.find(u => u.name === username && u.role === role);
+        if (user) {
+            sessionStorage.setItem('currentUser', JSON.stringify(user));
+            setCurrentUser(user);
+            return true;
+        }
+        return false;
     }
 
-    // 2. Implement API login for Campus Unit Users
-    if (role === 'Campus Unit User') {
+    // API login for Campus and District users
+    if (role === 'Campus Unit User') { // This handler now serves both roles
       try {
+
         const response = await fetch('https://portal.ssfkerala.org/api/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password }),
         });
 
-        if (!response.ok) {
-          console.error('API Error:', response.status, response.statusText);
-          return false;
-        }
+
+        if (!response.ok) return false;
 
         const result = await response.json();
-        console.log(result)
 
         if (result.success && result.data) {
-          const loggedInUser: User = {
-            id: result.data.campus_id,
-            name: result.data.orgname,
-            role: 'Campus Unit User',
-            campusId: result.data.campus_id,
-          };
+          let loggedInUser: User;
 
-          await createCampus({
-            campus_id: result.data.campus_id,
-            campus_name: result.data.orgname,
-            district: result.data.district,
-          });
-          // --- CHANGE #2: SAVE CAMPUS USER TO SESSION STORAGE ---
+          // Check the role from the API response
+          if (result.data.role === 'Campus') {
+            loggedInUser = {
+              id: result.data.campus_id,
+              name: result.data.orgname,
+              role: 'Campus Unit User',
+              campusId: result.data.campus_id,
+              district: result.data.district,
+            };
+          } else if (result.data.role === 'District') {
+            loggedInUser = {
+              id: result.data.org_id,
+              name: result.data.orgname,
+              role: 'District',
+            };
+          } else {
+            return false; // Unknown role
+          }
+          
           sessionStorage.setItem('currentUser', JSON.stringify(loggedInUser));
           setCurrentUser(loggedInUser);
-          // console.log("Authentication Token:", result.data.token);
           return true;
         } else {
           return false;
@@ -100,6 +105,20 @@ export default function AppRouter() {
     }
     
     return false;
+  };
+
+  const getDashboardPath = () => {
+      if (!currentUser) return '/';
+      switch (currentUser.role) {
+          case 'Campus Unit User':
+              return '/dashboard';
+          case 'District':
+              return '/district-dashboard';
+          case 'State Admin':
+              return '/dashboard'; // Or a separate admin dashboard
+          default:
+              return '/';
+      }
   };
 
   const handleLogout = () => {
@@ -135,31 +154,32 @@ export default function AppRouter() {
   // );
   return (
   <BrowserRouter>
-    <Routes>
-      {/* Redirect root path to the campus login page */}
-      <Route path="/" element={<Navigate to="/campus-login" replace />} />
-      
-      {/* Separate, explicit route for admin login */}
-      <Route 
-        path="/admin-login" 
-        element={<LoginPage role="State Admin" onLogin={handleLogin} />} 
-      />
-      
-      {/* Separate, explicit route for campus login */}
-      <Route 
-        path="/campus-login" 
-        element={<LoginPage role="Campus Unit User" onLogin={handleLogin} />} 
-      />
-      
-      <Route 
-        path="/dashboard" 
-        element={
-          <ProtectedRoute user={currentUser}>
-            <App user={currentUser!} onLogout={handleLogout} />
-          </ProtectedRoute>
-        } 
-      />
-    </Routes>
-  </BrowserRouter>
+      <Routes>
+        <Route path="/" element={!currentUser ? <LoginPage role="Campus Unit User" onLogin={handleLogin} /> : <Navigate to={getDashboardPath()} />} />
+        
+        <Route 
+          path="/admin-login" 
+          element={<LoginPage role="State Admin" onLogin={handleLogin} />} 
+        />
+        
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute user={currentUser}>
+              {currentUser?.role === 'Campus Unit User' && <App user={currentUser} onLogout={handleLogout} />}
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/district-dashboard" 
+          element={
+            <ProtectedRoute user={currentUser}>
+              {currentUser?.role === 'District' && <DistrictDashboard user={currentUser} onLogout={handleLogout} />}
+            </ProtectedRoute>
+          } 
+        />
+      </Routes>
+    </BrowserRouter>
 );
 }

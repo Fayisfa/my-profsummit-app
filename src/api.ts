@@ -29,6 +29,7 @@ export const loginCampus = async (username: any, password: any) => {
       body: JSON.stringify({ username, password }),
     });
     const data = await response.json();
+    console.log(data)
     if (data.success) {
       return { success: true, user: data.data, token: data.data.token };
     }
@@ -177,4 +178,20 @@ export const updateSubmissionStatus = async (updateData: any, token: any) => {
         body: JSON.stringify(updateData),
     });
     return response.json();
+};
+
+
+// In api.ts
+export const getRegisteredData = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/registrationData/getRegisteredData.php`);
+    console.log(response)
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Failed to fetch registered data:', error);
+    return []; // Return an empty array on failure
+  }
 };

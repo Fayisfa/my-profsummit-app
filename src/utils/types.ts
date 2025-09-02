@@ -1,6 +1,6 @@
 // types.ts
 
-export type UserRole = 'State Admin' | 'Campus Unit User';
+export type UserRole = 'State Admin' | 'Campus Unit User' | 'District';
 export type View = 'Overview' | 'Events' | 'Submissions' | 'Leaderboard' | 'Document';
 export type GradingType = 'Fixed' | 'Variable' | 'Tiered' | 'Discretion';
 export type SubmissionType = 'Media Upload' | 'Quantitative Input' | 'Text Submission' | 'Simple Participation' | 'Image Upload' | 'Video Upload';
