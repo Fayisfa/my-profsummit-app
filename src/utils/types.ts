@@ -45,3 +45,18 @@ export interface Submission {
   marks?: number;
   campus_name?: string; // From the JOIN query
 }
+
+
+export interface RegistrationData {
+    id: string;
+    name: string;
+    email: string;
+    college: string;
+    college_district: string;
+    native_district: string;
+    college_division: string;
+    mobile: string,
+    native_division: string;
+    attended_2023: boolean;
+    created_at: string;
+}
