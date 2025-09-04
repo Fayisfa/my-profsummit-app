@@ -209,3 +209,41 @@ export const getAllRegisteredData = async () => {
     return []; // Return an empty array on failure
   }
 };
+
+
+
+// evaluate submissions.
+// In src/api.ts
+
+export const evaluateSubmission = async (evaluationData: {
+    id: number;
+    status: 'approved' | 'rejected';
+    marks: number | null;
+    feedback: string;
+    evaluated_by: string;
+}) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/submissions/evaluateSubmission.php`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(evaluationData),
+        });
+
+        const text = await response.text(); // 👈 capture raw response
+        let data: any;
+        try {
+            data = JSON.parse(text);
+        } catch {
+            throw new Error(`Invalid JSON from server: ${text}`);
+        }
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || `HTTP error! status: ${response.status}`);
+        }
+
+        return data;
+    } catch (error) {
+        console.error('Failed to evaluate submission:', error);
+        return { success: false, error: (error as Error).message };
+    }
+};

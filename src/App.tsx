@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { User, Campus, Event, Submission, View, SubmissionStatus } from './utils/types';
 import { EVENTS } from './data/database'; // We only need static events now
-import { getCampuses, getSubmissions, createOrUpdateSubmission, uploadFile } from './api'; // Import our API functions
+import { getCampuses, getSubmissions, createOrUpdateSubmission, uploadFile, evaluateSubmission } from './api'; // Import our API functions
 import { ArrowRightIcon, CalendarIcon, ChevronRightIcon, HomeIcon, InboxIcon, MenuIcon, TrophyIcon, UserGroupIcon } from './utils/Icons';
 import Sidebar from './components/Sidebar';
 import ModalWrapper from './modals/ModalWrapper';
@@ -9,6 +9,8 @@ import NewSubmissionModal from './modals/NewSubmissionModal';
 import NotificationModal from './modals/NotificationModal';
 import EventCard from './components/EventCard';
 import StateDashboard from './pages/StateDashboard';
+import { data } from 'react-router-dom';
+import SubmissionOverview from './pages/SubmissionOverview';
 
 
 
@@ -210,31 +212,44 @@ const SubmissionModal: React.FC<{
             {submission.data.text && <p><strong>Report:</strong> <span className="text-slate-700 whitespace-pre-wrap">{submission.data.text}</span></p>}
             {submission.data.quantity && <p><strong>Quantity:</strong> <span className="font-semibold text-slate-800">{submission.data.quantity}</span></p>}
             {/* If there is an image URL, display it using an <img> tag */}
-            {submission.data.image && (
+            {/* If there are image submissions */}
+            {submission.data.images && submission.data.images.length > 0 && (
               <div>
-                <p><strong>Image Submission:</strong></p>
-                <img
-                  src={submission.data.image}
-                  alt="User submission"
-                  className="mt-2 w-full h-auto rounded-lg shadow-md"
-                />
+                <p><strong>Image Submissions:</strong></p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {submission.data.images.map((url: string, index: number) => (
+                    <img
+                      key={index}
+                      src={url}
+                      alt={`User submission ${index + 1}`}
+                      className="w-32 h-32 object-cover rounded-lg shadow-md"
+                    />
+                  ))}
+                </div>
               </div>
             )}
 
-            {/* If there is a video URL, display it as a clickable link */}
-            {submission.data.video && (
-              <p>
-                <strong>Video Submission:</strong>{' '}
-                <a
-                  href={submission.data.video}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-indigo-600 hover:underline"
-                >
-                  Click here to view video
-                </a>
-              </p>
+            {/* If there are video submissions */}
+            {submission.data.videos && submission.data.videos.length > 0 && (
+              <div>
+                <p><strong>Video Submissions:</strong></p>
+                <ul className="list-disc pl-5 mt-2 space-y-1">
+                  {submission.data.videos.map((url: string, index: number) => (
+                    <li key={index}>
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-indigo-600 hover:underline"
+                      >
+                        Video {index + 1}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
+
             {submission.data && Object.keys(submission.data).length === 0 && <p className="text-slate-500">This was a simple participation event.</p>}
           </div>
         </div>
@@ -351,6 +366,8 @@ export default function App({ user, onLogout }: AppProps) {
     message: ''
   });
 
+  const [isLoading, setIsLoading] = useState(false);
+
 
 
   useEffect(() => {
@@ -359,6 +376,7 @@ export default function App({ user, onLogout }: AppProps) {
         getCampuses(),
         getSubmissions()
       ]);
+      console.log(submissionData[1].data.image)
       setCampuses(campusData);
       setSubmissions(submissionData);
     };
@@ -367,24 +385,44 @@ export default function App({ user, onLogout }: AppProps) {
   }, []);
 
   // --- Handlers ---
-  const handleEvaluation = (submissionId: number, status: 'approved' | 'rejected', points: number, feedback: string) => {
-    const submissionToUpdate = submissions.find(s => s.id === submissionId);
-    if (!submissionToUpdate) return;
+  const handleEvaluation = async (submissionId: number, status: 'approved' | 'rejected', points: number, feedback: string) => {
+    setIsLoading(true);
 
-    const oldPoints = submissionToUpdate.status === 'approved' ? (submissionToUpdate.marks ?? 0) : 0;
-    const newPoints = status === 'approved' ? points : 0;
-    const pointDifference = newPoints - oldPoints;
+    // 1. Show the global loading overlay to prevent further actions.
+    try {
+      // 2. Call our new API function with all the necessary data.
+      const result = await evaluateSubmission({
+        id: submissionId,
+        status: status,
+        marks: points,
+        feedback: feedback,
+        evaluated_by: user.name, // Use the logged-in admin's name
+      });
 
-    setSubmissions(prev => prev.map(sub =>
-      sub.id === submissionId ? { ...sub, status, marks: newPoints, feedback } : sub
-    ));
+      // 3. Check the result from the backend.
+      if (result.success) {
+        // 4. If successful, refresh ALL data to get the latest submission statuses and campus points.
+        const [campusData, submissionData] = await Promise.all([
+          getCampuses(),
+          getSubmissions()
+        ]);
+        setCampuses(campusData);
+        setSubmissions(submissionData);
 
-    if (pointDifference !== 0) {
-      setCampuses(prev => prev.map(c =>
-        c.id === submissionToUpdate.campus_id ? { ...c, points: c.points + pointDifference } : c
-      ));
+        // 5. Show a success message.
+        setNotification({ visible: true, type: 'success', message: 'Evaluation saved successfully!' });
+      } else {
+        // If the API returned an error, show it.
+        setNotification({ visible: true, type: 'error', message: `Evaluation failed: ${result.error}` });
+      }
+    } catch (error) {
+      // Handle network or unexpected errors.
+      setNotification({ visible: true, type: 'error', message: 'An unexpected error occurred.' });
+    } finally {
+      // 6. ALWAYS hide the loader and the modal when the process is finished.
+      setIsLoading(false);
+      setIsSubmissionModalVisible(false);
     }
-    setIsSubmissionModalVisible(false);
   };
 
   /**
@@ -393,30 +431,47 @@ export default function App({ user, onLogout }: AppProps) {
    * @param submissionData - The core data for the submission (e.g., text, link, quantity).
    * @param file - An optional file object if the submission involves an upload.
    */
-  const handleNewOrUpdateSubmission = async (submissionData: Partial<Submission>, file?: File | null) => {
+  const handleNewOrUpdateSubmission = async (
+    submissionData: Partial<Submission>,
+    files: File[] = []
+
+  ) => {
     // Ensure an event is selected and the user is a campus user.
     if (!selectedEvent || !user.campusId) return;
 
     let finalSubmissionData = { ...submissionData };
 
+    let uploadedKeys: string[] = [];
+
     // --- Step 1: Handle File Upload ---
     // If a file was provided with the form, upload it first.
-    if (file) {
-      const uploadResult = await uploadFile(file);
-      if (uploadResult.success) {
-        if (finalSubmissionData.data) {
-          // --- CHANGE THIS ---
-          if (selectedEvent.submissionType.includes('Image Upload')) {
-            finalSubmissionData.data.image = uploadResult.url;
-          } else if (selectedEvent.submissionType.includes('Video Upload')) {
-            finalSubmissionData.data.video = uploadResult.url;
-          }
-          // --- END CHANGE ---
+    if (files.length > 0) {
+      for (const file of files) {
+        const uploadResult = await uploadFile(file);
+        console.log("Upload result:", uploadResult);
+
+        if (uploadResult.success) {
+          uploadedKeys.push(uploadResult.key);
+        } else {
+          setNotification({
+            visible: true,
+            type: "error",
+            message: `Upload failed: ${uploadResult.error}`,
+          });
+          return;
         }
-      } else {
-        setNotification({ visible: true, type: 'error', message: `Upload failed: ${uploadResult.error}` });
-        return;
       }
+      console.log(uploadedKeys)
+      if (finalSubmissionData.data) {
+        if (selectedEvent.submissionType.includes("Image Upload")) {
+          const prev = finalSubmissionData.data.images || [];
+          finalSubmissionData.data.images = [...prev, ...uploadedKeys];
+        } else if (selectedEvent.submissionType.includes("Video Upload")) {
+          const prev = finalSubmissionData.data.videos || [];
+          finalSubmissionData.data.videos = [...prev, ...uploadedKeys];
+        }
+      }
+
     }
     // --- Step 2: Prepare and Send Submission Data ---
     // Assemble the complete submission object to send to the backend.
@@ -576,6 +631,8 @@ export default function App({ user, onLogout }: AppProps) {
         return <Leaderboard campuses={campuses} />;
       case 'Document':
         return <DocumentViewer />;
+      case 'Submission Overview':
+        return user.role === 'State Admin' ? <SubmissionOverview /> : null;
       case 'Registration Overview':
         // Only render this if the user is a State Admin
         return user.role === 'State Admin' ? <StateDashboard user={user} onLogout={function (): void {
