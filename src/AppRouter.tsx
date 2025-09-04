@@ -4,7 +4,7 @@ import App from './App';
 import LoginPage from './LoginPage';
 import { USERS } from './data/database';
 import type { User, UserRole } from './utils/types';
-import { createCampus } from './api';
+import { createCampus, getCampuses } from './api';
 import DistrictDashboard from './pages/DistrictDashboard';
 
 // --- A component to protect routes that require authentication ---
@@ -77,6 +77,26 @@ export default function AppRouter() {
 
           // Check the role from the API response
           if (result.data.role === 'Campus') {
+             const existingCampuses = await getCampuses();
+
+              const campusExists = existingCampuses.some(
+              (campus: any) => campus.campus_id === result.data.campus_id
+            );
+
+             if (!campusExists) {
+              console.log(`Campus '${result.data.orgname}' not found in DB. Creating it now.`);
+              const createResponse = await createCampus({
+                campus_id: result.data.campus_id,
+                campus_name: result.data.orgname,
+                district: result.data.district,
+              });
+
+              if (!createResponse.success) {
+                 // Handle error if campus creation fails, maybe show an alert
+                 console.error("Failed to auto-create campus:", createResponse.error);
+                 return false; // Stop the login process if creation fails
+              }
+            }
             loggedInUser = {
               id: result.data.campus_id,
               name: result.data.orgname,
