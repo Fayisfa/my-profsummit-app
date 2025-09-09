@@ -60,7 +60,7 @@ export default function AppRouter() {
     // API login for Campus and District users
     if (role === 'Campus Unit User') { // This handler now serves both roles
       try {
-
+        console.log("Attempting login for user:", username);
         const response = await fetch('https://portal.ssfkerala.org/api/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -71,6 +71,7 @@ export default function AppRouter() {
         if (!response.ok) return false;
 
         const result = await response.json();
+        console.log("Login response:", result);
 
         if (result.success && result.data) {
           let loggedInUser: User;
@@ -78,10 +79,13 @@ export default function AppRouter() {
           // Check the role from the API response
           if (result.data.role === 'Campus') {
              const existingCampuses = await getCampuses();
+             console.log("Existing campuses:", existingCampuses);
 
               const campusExists = existingCampuses.some(
-              (campus: any) => campus.campus_id === result.data.campus_id
-            );
+  (campus: any) => String(campus.id) === String(result.data.campus_id)
+);
+
+            console.log("Campus exists:", campusExists);
 
              if (!campusExists) {
               console.log(`Campus '${result.data.orgname}' not found in DB. Creating it now.`);
