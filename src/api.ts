@@ -247,3 +247,57 @@ export const evaluateSubmission = async (evaluationData: {
         return { success: false, error: (error as Error).message };
     }
 };
+
+
+
+/**
+ * Fetches registered member data from the previous year.
+ * This function calls the getPastYearData.php script.
+ * @returns {Promise<Array>} A promise that resolves to an array of data objects, or an empty array if an error occurs.
+ */
+export const getPastYearRegisteredData = async () => {
+  try {
+    // Construct the full URL to your PHP endpoint.
+    // I'm assuming it might be in a 'registrationData' folder based on your other example.
+    const response = await fetch(`${API_BASE_URL}/registrationData/getPastYearData.php`);
+
+    // Check if the HTTP response status is OK (e.g., 200).
+    if (!response.ok) {
+      // If not, throw an error to be handled by the catch block.
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+ 
+    // Parse the JSON body of the response and return it.
+    return await response.json();
+  } catch (error) {
+    // Log any errors to the browser console for debugging.
+    console.error('Failed to fetch past year registered data:', error);
+    // Return an empty array as a safe fallback to prevent UI crashes.
+    return [];
+  }
+};
+
+
+// Global Registered Data Fetcher
+
+export const getGlobalRegisteredData = async () => {
+  try {
+    // Construct the full URL to your PHP endpoint.
+    // I'm assuming it might be in a 'registrationData' folder based on your other example.
+    const response = await fetch(`${API_BASE_URL}/registrationData/getGlobalRegistration.php`);
+
+    // Check if the HTTP response status is OK (e.g., 200).
+    if (!response.ok) {
+      // If not, throw an error to be handled by the catch block.
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+ 
+    // Parse the JSON body of the response and return it.
+    return await response.json();
+  } catch (error) {
+    // Log any errors to the browser console for debugging.
+    console.error('Failed to fetch past year registered data:', error);
+    // Return an empty array as a safe fallback to prevent UI crashes.
+    return [];
+  }
+};
