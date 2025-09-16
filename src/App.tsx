@@ -11,6 +11,9 @@ import EventCard from './components/EventCard';
 import StateDashboard from './pages/StateDashboard';
 import { data } from 'react-router-dom';
 import SubmissionOverview from './pages/SubmissionOverview';
+import RetentionAnalysis from './components/RetentionAnalysis';
+import PastYearDistrictView from './pages/PastYearDistrictView';
+import DistrictDashboard from './pages/DistrictDashboard';
 
 
 
@@ -631,6 +634,8 @@ export default function App({ user, onLogout }: AppProps) {
         return <Leaderboard campuses={campuses} />;
       case 'Document':
         return <DocumentViewer />;
+      case 'Retention Analysis':
+        return user.role === 'State Admin' ? <RetentionAnalysis /> : null;
       case 'Submission Overview':
         return user.role === 'State Admin' ? <SubmissionOverview /> : null;
       case 'Registration Overview':
@@ -638,6 +643,11 @@ export default function App({ user, onLogout }: AppProps) {
         return user.role === 'State Admin' ? <StateDashboard user={user} onLogout={function (): void {
           throw new Error('Function not implemented.');
         }} /> : null;
+      case 'District Current Year':
+        return user.role === 'District' ? <DistrictDashboard user={user} onLogout={onLogout} /> : null;
+            
+      case 'District Past Year':
+        return user.role === 'District' ? <PastYearDistrictView user={user} onLogout={onLogout} /> : null;
       case 'Overview':
       default:
         return (

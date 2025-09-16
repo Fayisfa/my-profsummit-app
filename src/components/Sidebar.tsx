@@ -12,8 +12,10 @@ import {
     XIcon,
     BarChartIcon,
     PieChartIcon,
+
 } from '../utils/Icons';
 import profSummitP from '/assets/profsummitP.png';
+import { History as HistoryIcon } from 'lucide-react';
 
 interface SidebarProps {
     user: User;
@@ -32,15 +34,27 @@ const Sidebar: React.FC<SidebarProps> = ({
     isOpen,
     setIsOpen,
 }) => {
-    const navItems = [
-        { name: 'Overview', icon: HomeIcon },
-        { name: 'Events', icon: CalendarIcon },
-        { name: 'Submissions', icon: InboxIcon },
-        { name: 'Leaderboard', icon: TrophyIcon },
-        ...(user.role === 'State Admin' ? [{ name: 'Submission Overview', icon: PieChartIcon }] : []),
-        ...(user.role === 'State Admin' ? [{ name: 'Registration Overview', icon: BarChartIcon }] : []),
-        { name: 'Document', icon: DocumentIcon },
-    ];
+const navItems = [
+        // --- General Items (Show for everyone EXCEPT District Admins) ---
+        ...(user.role !== 'District' ? [
+            { name: 'Overview', icon: HomeIcon },
+            { name: 'Events', icon: CalendarIcon },
+            { name: 'Submissions', icon: InboxIcon },
+            { name: 'Leaderboard', icon: TrophyIcon },
+        ] : []),
+
+        // --- State Admin Only Items ---
+        ...(user.role === 'State Admin' ? [{ name: 'Submission Overview', icon: PieChartIcon }] : []),
+        ...(user.role === 'State Admin' ? [{ name: 'Registration Overview', icon: BarChartIcon }] : []),
+        ...(user.role === 'State Admin' ? [{ name: 'Retention Analysis', icon: HistoryIcon }] : []),
+
+        // --- District Admin Only Items ---
+        ...(user.role === 'District' ? [{ name: 'District Current Year', icon: BarChartIcon }] : []),
+        ...(user.role === 'District' ? [{ name: 'District Past Year', icon: HistoryIcon }] : []),
+        
+        // --- Document Link (Show for everyone EXCEPT District Admins) ---
+        ...(user.role !== 'District' ? [{ name: 'Document', icon: DocumentIcon }] : []),
+    ];
 
     return (
         <>

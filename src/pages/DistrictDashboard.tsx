@@ -267,7 +267,7 @@ const DistrictDashboard: React.FC<DistrictDashboardProps> = ({ user, onLogout })
       total: finalFilteredData.length,
       new: finalFilteredData.filter(s => new Date(s.created_at) > cutoffDate).length,
       returning: finalFilteredData.filter(s => new Date(s.created_at) <= cutoffDate).length,
-      today: finalFilteredData.filter(s => s.created_at.startsWith(today)).length,
+      today: finalFilteredData.filter(s => s.updated_at.startsWith(today)).length,
     };
 
 

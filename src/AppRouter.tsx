@@ -167,22 +167,19 @@ export default function AppRouter() {
     return false;
   };
 
-  const getDashboardPath = () => {
-    if (!currentUser) return '/';
-    switch (currentUser.role) {
-      case 'Campus Unit User':
-        return '/dashboard';
-      case 'District':
-        return '/district-dashboard';
-      case 'State Admin':
-        return '/dashboard';
-      // --- CHANGE #2: ADD RSC ADMIN CASE FOR REDIRECTION ---
-      case 'RSC Admin':
-        return '/rsc-dashboard';
-      default:
-        return '/';
-    }
-  };
+const getDashboardPath = () => {
+        if (!currentUser) return '/';
+        switch (currentUser.role) {
+            case 'Campus Unit User':
+            case 'State Admin':
+            case 'District': // <-- CHANGE: Send District users to /dashboard
+                return '/dashboard';
+            case 'RSC Admin':
+                return '/rsc-dashboard';
+            default:
+                return '/';
+        }
+    };
 
   // ... handleLogout function remains the same ...
   const handleLogout = () => {
@@ -202,38 +199,39 @@ export default function AppRouter() {
           element={<LoginPage role="State Admin" onLogin={handleLogin} />}
         />
 
-<Route
-  path="/rsc-login"
-  element={
-    !currentUser ? (
-      <LoginPage role="RSC Admin" onLogin={handleLogin} />
-    ) : (
-      <Navigate to={getDashboardPath()} />
-    )
-  }
-/>
-
         <Route
-          path="/dashboard"
+          path="/rsc-login"
           element={
-            <ProtectedRoute user={currentUser}>
-              {/* --- THIS IS THE FIX --- */}
-              {/* Allow rendering if the role is EITHER 'Campus Unit User' OR 'State Admin' */}
-              {(currentUser?.role === 'Campus Unit User' || currentUser?.role === 'State Admin') && (
-                <App user={currentUser} onLogout={handleLogout} />
-              )}
-            </ProtectedRoute>
+            !currentUser ? (
+              <LoginPage role="RSC Admin" onLogin={handleLogin} />
+            ) : (
+              <Navigate to={getDashboardPath()} />
+            )
           }
         />
 
-        <Route
+         <Route
+                    path="/dashboard"
+                    element={
+                        <ProtectedRoute user={currentUser}>
+                            {/* --- CHANGE: Allow District role to access the App component --- */}
+                            {(currentUser?.role === 'Campus Unit User' || 
+                              currentUser?.role === 'State Admin' ||
+                              currentUser?.role === 'District') && (
+                                <App user={currentUser} onLogout={handleLogout} />
+                            )}
+                        </ProtectedRoute>
+                    }
+                />
+
+        {/* <Route
           path="/district-dashboard"
           element={
             <ProtectedRoute user={currentUser}>
               {currentUser?.role === 'District' && <DistrictDashboard user={currentUser} onLogout={handleLogout} />}
             </ProtectedRoute>
           }
-        />
+        /> */}
 
         {/* --- CHANGE #3: ADD THE ROUTE FOR THE RSC DASHBOARD --- */}
         <Route
