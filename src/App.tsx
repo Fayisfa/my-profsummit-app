@@ -204,8 +204,15 @@ const SubmissionModal: React.FC<{
               <p className="text-sm font-medium text-slate-500">Submitted On</p>
               <p className="font-semibold text-slate-700">{submission.created_at}</p>
             </div>
+
+            
           </div>
+          
         </div>
+        <div>
+              <p className="text-sm font-medium text-slate-500">Feedback</p>
+              <p className="font-semibold text-slate-700">{submission.feedback}</p>
+            </div>
 
         {/* Submission Data */}
         <div>
@@ -645,7 +652,7 @@ export default function App({ user, onLogout }: AppProps) {
         }} /> : null;
       case 'District Current Year':
         return user.role === 'District' ? <DistrictDashboard user={user} onLogout={onLogout} /> : null;
-            
+
       case 'District Past Year':
         return user.role === 'District' ? <PastYearDistrictView user={user} onLogout={onLogout} /> : null;
       case 'Overview':
