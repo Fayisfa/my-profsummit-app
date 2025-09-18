@@ -243,7 +243,7 @@ const NewSubmissionModal: React.FC<NewSubmissionModalProps> = ({
 
   return (
     <ModalWrapper visible={visible} onHide={onHide} size="lg">
-      <div className="p-6">
+       <div className="p-6 max-h-[80vh] overflow-y-auto">
         <h2 className="text-2xl font-bold mb-2">
                     {/* [OPTIONAL] Better title for resubmission */}
                     {existingSubmission?.status === 'rejected' ? 'Resubmit Entry' : (existingSubmission ? 'Update Submission' : event?.title)}
