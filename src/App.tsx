@@ -2,18 +2,24 @@ import React, { useState, useEffect } from 'react';
 import type { User, Campus, Event, Submission, View, SubmissionStatus } from './utils/types';
 import { EVENTS } from './data/database'; // We only need static events now
 import { getCampuses, getSubmissions, createOrUpdateSubmission, uploadFile, evaluateSubmission } from './api'; // Import our API functions
-import { ArrowRightIcon, CalendarIcon, ChevronRightIcon, HomeIcon, InboxIcon, MenuIcon, TrophyIcon, UserGroupIcon } from './utils/Icons';
+import { ChevronRightIcon, MenuIcon, TrophyIcon } from './utils/Icons';
 import Sidebar from './components/Sidebar';
 import ModalWrapper from './modals/ModalWrapper';
 import NewSubmissionModal from './modals/NewSubmissionModal';
 import NotificationModal from './modals/NotificationModal';
 import EventCard from './components/EventCard';
 import StateDashboard from './pages/StateDashboard';
-import { data } from 'react-router-dom';
 import SubmissionOverview from './pages/SubmissionOverview';
 import RetentionAnalysis from './components/RetentionAnalysis';
 import PastYearDistrictView from './pages/PastYearDistrictView';
 import DistrictDashboard from './pages/DistrictDashboard';
+
+const CheckCircleIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+const XCircleIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+const ClockIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+const DocumentTextIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>;
+const TrophyIconStat = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>;
+
 
 
 
@@ -48,6 +54,29 @@ const ProgressCard: React.FC<{ submissions: Submission[]; totalEvents: number }>
   );
 };
 
+
+
+const ImageViewerModal: React.FC<{ imageUrl: string | null; onClose: () => void; }> = ({ imageUrl, onClose }) => {
+  if (!imageUrl) return null;
+
+  return (
+    // This is the backdrop, clicking it will close the modal
+    <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+      <div className="relative max-w-4xl max-h-[90vh]" onClick={e => e.stopPropagation()}>
+        <img src={imageUrl} alt="Enlarged view" className="block max-w-full max-h-[90vh] rounded-lg shadow-2xl" />
+        <button
+          onClick={onClose}
+          className="absolute -top-3 -right-3 bg-white rounded-full p-1 text-slate-800 hover:bg-slate-200 transition-colors"
+          aria-label="Close image viewer"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+};
 const DocumentViewer: React.FC = () => {
   // Replace this with the actual URL to your hosted PDF file
   const pdfUrl = "/assets/letter.pdf";
@@ -65,6 +94,95 @@ const DocumentViewer: React.FC = () => {
         />
       </div>
     </div>
+  );
+};
+
+
+
+// In App.tsx
+const CampusDetailModal: React.FC<{
+  visible: boolean;
+  onClose: () => void;
+  campus: Campus | null;
+  submissions: Submission[];
+  onSelectSubmission: (submission: Submission) => void;
+}> = ({ visible, onClose, campus, submissions, onSelectSubmission }) => {
+  if (!visible || !campus) return null;
+
+  const campusSubmissions = submissions.filter(s => s.campus_id === campus.id);
+  const approvedCount = campusSubmissions.filter(s => s.status === 'approved').length;
+  const rejectedCount = campusSubmissions.filter(s => s.status === 'rejected').length;
+  const pendingCount = campusSubmissions.filter(s => s.status === 'pending').length;
+  const approvalRate = campusSubmissions.length > 0 ? (approvedCount / (approvedCount + rejectedCount)) * 100 : 0;
+
+  const StatCard: React.FC<{ label: string; value: string | number; color: string; children: React.ReactNode; }> = ({ label, value, color, children }) => (
+    <div className="bg-white p-4 rounded-xl shadow-sm border flex items-center gap-4">
+      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${color.replace('text', 'bg').replace('600', '100')}`}>
+        <span className={color}>{children}</span>
+      </div>
+      <div>
+        <p className={`text-2xl font-bold ${color}`}>{value}</p>
+        <p className="text-sm text-slate-500 -mt-1">{label}</p>
+      </div>
+    </div>
+  );
+  
+  const getStatusColor = (status: SubmissionStatus) => ({
+    'approved': 'border-emerald-500 text-emerald-700', 'rejected': 'border-rose-500 text-rose-700',
+    'pending': 'border-amber-500 text-amber-700'
+  }[status] || 'border-slate-500 text-slate-700');
+
+  return (
+    <ModalWrapper visible={visible} onHide={onClose} size="3xl">
+      <div className="p-6 border-b flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold mb-1">{campus.name}</h2>
+          <p className="text-slate-500">Submission Overview</p>
+        </div>
+        <div className="text-right">
+          <p className="text-3xl font-bold text-indigo-600">{campus.points}</p>
+          <p className="text-sm text-slate-500 -mt-1">Total Points</p>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 bg-slate-50/50">
+        <StatCard label="Submissions" value={campusSubmissions.length} color="text-slate-600"><DocumentTextIcon /></StatCard>
+        <StatCard label="Approved" value={approvedCount} color="text-emerald-600"><CheckCircleIcon /></StatCard>
+        <StatCard label="Rejected" value={rejectedCount} color="text-rose-600"><XCircleIcon /></StatCard>
+        <StatCard label="Pending" value={pendingCount} color="text-amber-600"><ClockIcon /></StatCard>
+      </div>
+
+      <div className="p-6 space-y-3 overflow-y-auto max-h-[45vh]">
+        <h3 className="font-bold text-lg text-slate-800 border-b pb-2 mb-4">Submission Details</h3>
+        {campusSubmissions.length > 0 ? campusSubmissions.map(sub => (
+          <div key={sub.id} className="border rounded-lg p-4 bg-white hover:bg-slate-50 transition-colors">
+            <div className="flex justify-between items-start gap-4">
+              <h4 className="font-semibold text-slate-800">{EVENTS.find(e => e.id === sub.event_id)?.title || 'Unknown Event'}</h4>
+              <button 
+                onClick={() => onSelectSubmission(sub)}
+                className="flex-shrink-0 text-xs bg-indigo-100 text-indigo-700 px-3 py-1.5 font-semibold rounded-md hover:bg-indigo-200"
+              >
+                {sub.status === 'pending' ? 'Review' : 'View / Edit'}
+              </button>
+            </div>
+            <div className={`mt-3 text-sm text-slate-600 border-l-2 pl-3 ${getStatusColor(sub.status)}`}>
+              <p><strong>Status:</strong> <span className="font-semibold capitalize">{sub.status}</span></p>
+              <p><strong>Points:</strong> {sub.marks ?? 'N/A'}</p>
+              <p className="whitespace-pre-wrap"><strong>Feedback:</strong> {sub.feedback || 'N/A'}</p>
+            </div>
+          </div>
+        )) : (
+          <div className="text-center py-12 text-slate-500 flex flex-col items-center gap-2">
+            <DocumentTextIcon />
+            <p>No submissions found for this campus.</p>
+          </div>
+        )}
+      </div>
+
+      <div className="p-4 bg-slate-50 border-t flex justify-end">
+        <button onClick={onClose} className="bg-slate-200 text-slate-800 px-4 py-2 rounded-lg hover:bg-slate-300">Close</button>
+      </div>
+    </ModalWrapper>
   );
 };
 
@@ -101,7 +219,10 @@ const OverviewCard: React.FC<{ user: User | null }> = ({ user }) => (
   </div>
 );
 
-const Leaderboard: React.FC<{ campuses: Campus[] }> = ({ campuses }) => {
+const Leaderboard: React.FC<{
+  campuses: Campus[];
+  onCampusClick: (campus: Campus) => void;
+}> = ({ campuses, onCampusClick }) => {
   const sortedCampuses = [...campuses].sort((a, b) => b.points - a.points);
 
   return (
@@ -112,7 +233,11 @@ const Leaderboard: React.FC<{ campuses: Campus[] }> = ({ campuses }) => {
       </div>
       <div className="space-y-3">
         {sortedCampuses.map((campus, index) => (
-          <div key={campus.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors">
+          <div
+            key={campus.id}
+            className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
+            onClick={() => onCampusClick(campus)}
+          >
             <div className="flex items-center gap-3">
               <span className={`flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm ${index === 0 ? 'bg-amber-100 text-amber-800' :
                 index === 1 ? 'bg-slate-200 text-slate-800' :
@@ -135,11 +260,16 @@ const Leaderboard: React.FC<{ campuses: Campus[] }> = ({ campuses }) => {
 
 
 
+// In App.tsx, find and replace the entire SubmissionModal component
+
 const SubmissionModal: React.FC<{
   visible: boolean; onHide: () => void; submission: Submission | null; event: Event | null; campus: Campus | null;
   onEvaluate?: (submissionId: number, status: 'approved' | 'rejected', points: number, feedback: string) => void;
-  mode: 'evaluate' | 'view';
-}> = ({ visible, onHide, submission, event, campus, onEvaluate, mode }) => {
+  onUpdate?: (submissionId: number, points: number, feedback: string) => void;
+  mode: 'evaluate' | 'view' | 'view_and_edit';
+  setNotification: React.Dispatch<React.SetStateAction<{ visible: boolean; type: 'success' | 'error'; message: string }>>;
+  setLightboxImageUrl: (url: string) => void;
+}> = ({ visible, onHide, submission, event, campus, onEvaluate, onUpdate, mode, setNotification, setLightboxImageUrl }) => {
   const [points, setPoints] = React.useState<number>(0);
   const [feedback, setFeedback] = React.useState('');
 
@@ -154,15 +284,27 @@ const SubmissionModal: React.FC<{
 
   const handleEvaluation = (status: 'approved' | 'rejected') => {
     if (!onEvaluate) return;
+
+    if (status === 'approved' && event.gradingType === 'Discretion' && points <= 0) {
+      setNotification({
+        visible: true,
+        type: 'error',
+        message: "For 'Discretion' type events, marks must be greater than 0 to approve."
+      });
+      return;
+    }
+
     let awardedPoints = 0;
     if (status === 'approved') {
-      switch (event.gradingType) {
-        case 'Fixed': awardedPoints = event.maxPoints; break;
-        default: awardedPoints = Math.min(points, event.maxPoints); break;
-      }
+      awardedPoints = event.gradingType === 'Fixed' ? event.maxPoints : Math.min(points, event.maxPoints);
     }
     onEvaluate(submission.id, status, awardedPoints, feedback);
     onHide();
+  };
+
+  const handleUpdate = () => {
+    if (!onUpdate) return;
+    onUpdate(submission.id, Math.min(points, event.maxPoints), feedback);
   };
 
   const getStatusColor = (status: SubmissionStatus) => ({
@@ -171,143 +313,103 @@ const SubmissionModal: React.FC<{
     'pending': 'bg-amber-100 text-amber-800'
   }[status] || 'bg-slate-100 text-slate-800');
 
+  const isEditable = mode === 'view_and_edit' && submission.status === 'approved';
+
   return (
     <ModalWrapper visible={visible} onHide={onHide}>
       <div className="p-6 border-b border-slate-200">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-slate-800">Submission {mode === 'evaluate' ? 'Review' : 'Details'}</h2>
-          <button onClick={onHide} className="text-slate-400 hover:text-slate-600 text-2xl p-1" aria-label="Close modal"> × </button>
-        </div>
+        <h2 className="text-2xl font-bold text-slate-800">
+          {mode === 'evaluate' ? 'Submission Review' : 'Submission Details'}
+        </h2>
         <p className="text-slate-500 mt-1">For event: <span className="font-semibold text-indigo-600">{event.title}</span></p>
       </div>
+
       <div className="p-6 space-y-6 overflow-y-auto">
-        {/* Submission Info */}
+        {/* [RESTORED] Submission Info */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-3">
-            <div>
-              <p className="text-sm font-medium text-slate-500">Campus</p>
-              <p className="font-semibold text-slate-700">{campus.name}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-slate-500">Submitted By</p>
-              <p className="font-semibold text-slate-700">{submission.submitted_by}</p>
-            </div>
+            <div><p className="text-sm font-medium text-slate-500">Campus</p><p className="font-semibold text-slate-700">{campus.name}</p></div>
+            <div><p className="text-sm font-medium text-slate-500">Submitted By</p><p className="font-semibold text-slate-700">{submission.submitted_by}</p></div>
           </div>
           <div className="space-y-3">
-            <div>
-              <p className="text-sm font-medium text-slate-500">Status</p>
-              <span className={`px-3 py-1 text-sm rounded-full ${getStatusColor(submission.status)} font-medium`}>
-                {submission.status}
-              </span>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-slate-500">Submitted On</p>
-              <p className="font-semibold text-slate-700">{submission.created_at}</p>
-            </div>
-
-            
+            <div><p className="text-sm font-medium text-slate-500">Status</p><span className={`px-3 py-1 text-sm rounded-full ${getStatusColor(submission.status)} font-medium capitalize`}>{submission.status}</span></div>
+            <div><p className="text-sm font-medium text-slate-500">Submitted On</p><p className="font-semibold text-slate-700">{submission.created_at}</p></div>
           </div>
-          
         </div>
-        <div>
-              <p className="text-sm font-medium text-slate-500">Feedback</p>
-              <p className="font-semibold text-slate-700">{submission.feedback}</p>
-            </div>
 
-        {/* Submission Data */}
+        {/* [RESTORED] Submission Content */}
         <div>
           <h4 className="font-bold mb-3 text-slate-800 border-b pb-2">Submission Content</h4>
           <div className="space-y-3 text-sm bg-slate-50 p-4 rounded-lg">
             {submission.data.link && <p><strong>Link:</strong> <a href={submission.data.link} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">{submission.data.link}</a></p>}
             {submission.data.text && <p><strong>Report:</strong> <span className="text-slate-700 whitespace-pre-wrap">{submission.data.text}</span></p>}
             {submission.data.quantity && <p><strong>Quantity:</strong> <span className="font-semibold text-slate-800">{submission.data.quantity}</span></p>}
-            {/* If there is an image URL, display it using an <img> tag */}
-            {/* If there are image submissions */}
             {submission.data.images && submission.data.images.length > 0 && (
               <div>
-                <p><strong>Image Submissions:</strong></p>
+                <p><strong>Images:</strong></p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {submission.data.images.map((url: string, index: number) => (
+                    // 3. Modify the <img> tag
                     <img
                       key={index}
                       src={url}
-                      alt={`User submission ${index + 1}`}
-                      className="w-32 h-32 object-cover rounded-lg shadow-md"
+                      alt={`submission ${index + 1}`}
+                      className="w-32 h-32 object-cover rounded-lg shadow-md cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => setLightboxImageUrl(url)}
                     />
                   ))}
                 </div>
               </div>
             )}
 
-            {/* If there are video submissions */}
             {submission.data.videos && submission.data.videos.length > 0 && (
               <div>
-                <p><strong>Video Submissions:</strong></p>
-                <ul className="list-disc pl-5 mt-2 space-y-1">
-                  {submission.data.videos.map((url: string, index: number) => (
-                    <li key={index}>
-                      <a
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-indigo-600 hover:underline"
-                      >
-                        Video {index + 1}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
+                <p><strong>Videos:</strong></p>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  {submission.data.videos.map((url: string, index: number) => (<video key={index} src={url} controls className="w-full rounded-lg shadow-md" />))}
+                </div>
               </div>
             )}
-
-            {submission.data && Object.keys(submission.data).length === 0 && <p className="text-slate-500">This was a simple participation event.</p>}
+            {Object.keys(submission.data).length === 0 && <p className="text-slate-500">This was a simple participation event.</p>}
           </div>
         </div>
 
-        {mode === 'evaluate' && (
+        {/* Evaluation/Edit Section */}
+        {(mode === 'evaluate' || mode === 'view_and_edit') && (
           <div className="space-y-6">
             <div>
-              <h4 className="font-bold mb-3 text-slate-800 border-b pb-2">Evaluation</h4>
-              {event.gradingType === 'Fixed' || event.gradingType === 'Variable' ? (
-                <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
-                  <p className="font-semibold text-blue-800">Points are calculated automatically.</p>
-                  <p className="text-sm text-blue-700">
-                    {event.gradingType === 'Fixed'
-                      ? `Approving will award a fixed ${event.maxPoints} points.`
-                      : `Approving will award points based on quantity (e.g., ${submission.data.quantity} units).`
-                    }
-                  </p>
-                </div>
+              <h4 className="font-bold mb-3 text-slate-800 border-b pb-2">{mode === 'evaluate' ? 'Evaluation' : 'Evaluation Details'}</h4>
+              {event.gradingType === 'Fixed' ? (
+                <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg"><p className="font-semibold text-blue-800">Points are fixed for this event.</p><p className="text-sm text-blue-700">Approving will award {event.maxPoints} points.</p></div>
               ) : (
                 <div>
                   <label htmlFor="points" className="block text-sm font-medium text-slate-700 mb-2">Award Points (Max: {event.maxPoints})</label>
-                  <input
-                    id="points"
-                    type="number"
-                    value={points}
-                    onChange={(e) => setPoints(Math.max(0, Math.min(event.maxPoints, Number(e.target.value))))}
-                    max={event.maxPoints}
-                    min="0"
-                    className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                    aria-describedby="points-helper"
-                  />
-                  <p id="points-helper" className="text-xs text-slate-500 mt-1">For {event.gradingType} grading, you set the points manually.</p>
+                  <input id="points" type="number" value={points} onChange={(e) => setPoints(Math.max(0, Math.min(event.maxPoints, Number(e.target.value))))} max={event.maxPoints} min="0" className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 disabled:bg-slate-100" disabled={!isEditable && mode !== 'evaluate'} />
                 </div>
               )}
             </div>
             <div>
-              <label htmlFor="feedback" className="block text-sm font-medium text-slate-700 mb-2"> Comments/Reason <span className="text-slate-500">(Required for Rejection)</span></label>
-              <textarea id="feedback" value={feedback} onChange={(e) => setFeedback(e.target.value)} rows={4} className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+              <label htmlFor="feedback" className="block text-sm font-medium text-slate-700 mb-2">Comments/Feedback</label>
+              <textarea id="feedback" value={feedback} onChange={(e) => setFeedback(e.target.value)} rows={4} className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 disabled:bg-slate-100" disabled={!isEditable && mode !== 'evaluate'} />
             </div>
           </div>
         )}
       </div>
-      {mode === 'evaluate' && (
-        <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row gap-3 justify-end">
-          <button onClick={() => handleEvaluation('rejected')} disabled={!feedback} className="px-5 py-2.5 rounded-lg font-semibold text-sm text-white bg-rose-600 hover:bg-rose-700 disabled:bg-slate-400 disabled:cursor-not-allowed"> Reject Submission </button>
-          <button onClick={() => handleEvaluation('approved')} className="px-5 py-2.5 rounded-lg font-semibold text-sm text-white bg-emerald-600 hover:bg-emerald-700"> Approve Submission </button>
-        </div>
-      )}
+
+      <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row gap-3 justify-end">
+        {mode === 'evaluate' && (
+          <>
+            <button onClick={() => handleEvaluation('rejected')} disabled={!feedback} className="px-5 py-2.5 rounded-lg font-semibold text-sm text-white bg-rose-600 hover:bg-rose-700 disabled:bg-slate-400">Reject</button>
+            <button onClick={() => handleEvaluation('approved')} className="px-5 py-2.5 rounded-lg font-semibold text-sm text-white bg-emerald-600 hover:bg-emerald-700">Approve</button>
+          </>
+        )}
+        {isEditable && (
+          <button onClick={handleUpdate} className="px-5 py-2.5 rounded-lg font-semibold text-sm text-white bg-indigo-600 hover:bg-indigo-700">Update Evaluation</button>
+        )}
+        {(mode === 'view' || (mode === 'view_and_edit' && !isEditable)) && (
+          <button onClick={onHide} className="px-5 py-2.5 rounded-lg font-semibold text-sm bg-slate-200 text-slate-800 hover:bg-slate-300">Close</button>
+        )}
+      </div>
     </ModalWrapper>
   );
 };
@@ -369,6 +471,11 @@ export default function App({ user, onLogout }: AppProps) {
   const [isSubmissionModalVisible, setIsSubmissionModalVisible] = useState(false);
   const [isNewSubmissionModalVisible, setIsNewSubmissionModalVisible] = useState(false);
   const [isEventSubmissionsModalVisible, setIsEventSubmissionsModalVisible] = useState(false);
+  const [submissionFilter, setSubmissionFilter] = useState<SubmissionStatus>('pending');
+  const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
+  const [selectedCampus, setSelectedCampus] = useState<Campus | null>(null);
+  const [isCampusDetailModalVisible, setIsCampusDetailModalVisible] = useState(false);
+
 
   const [notification, setNotification] = useState<{ visible: boolean; type: 'success' | 'error'; message: string }>({
     visible: false,
@@ -377,6 +484,11 @@ export default function App({ user, onLogout }: AppProps) {
   });
 
   const [isLoading, setIsLoading] = useState(false);
+
+  const openCampusDetailModal = (campus: Campus) => {
+    setSelectedCampus(campus);
+    setIsCampusDetailModalVisible(true);
+  };
 
 
 
@@ -430,6 +542,35 @@ export default function App({ user, onLogout }: AppProps) {
       setNotification({ visible: true, type: 'error', message: 'An unexpected error occurred.' });
     } finally {
       // 6. ALWAYS hide the loader and the modal when the process is finished.
+      setIsLoading(false);
+      setIsSubmissionModalVisible(false);
+    }
+  };
+
+  const handleUpdateEvaluation = async (submissionId: number, points: number, feedback: string) => {
+    setIsLoading(true);
+    try {
+      // We call the same API, but the status remains 'approved'.
+      // The backend is smart enough to calculate the point difference.
+      const result = await evaluateSubmission({
+        id: submissionId,
+        status: 'approved', // Status doesn't change
+        marks: points,
+        feedback: feedback,
+        evaluated_by: user.name,
+      });
+
+      if (result.success) {
+        const [campusData, submissionData] = await Promise.all([getCampuses(), getSubmissions()]);
+        setCampuses(campusData);
+        setSubmissions(submissionData);
+        setNotification({ visible: true, type: 'success', message: 'Evaluation updated successfully!' });
+      } else {
+        setNotification({ visible: true, type: 'error', message: `Update failed: ${result.error}` });
+      }
+    } catch (error) {
+      setNotification({ visible: true, type: 'error', message: 'An unexpected error occurred.' });
+    } finally {
       setIsLoading(false);
       setIsSubmissionModalVisible(false);
     }
@@ -491,6 +632,7 @@ export default function App({ user, onLogout }: AppProps) {
       submitted_by: user.name,
       items: finalSubmissionData.data, // The backend expects 'items' for the JSON data
       data: finalSubmissionData.data,
+      gradingType: selectedEvent.gradingType,
     };
 
     // Call the API to either create or update the submission record.
@@ -523,25 +665,55 @@ export default function App({ user, onLogout }: AppProps) {
    * It determines what should happen next based on the user's role.
    * @param event - The event object associated with the clicked card.
    */
+
   const handleEventAction = (event: Event) => {
-    // Store the selected event in the state for other components to use.
     setSelectedEvent(event);
 
     if (user.role === 'State Admin') {
-      // Admins should see a list of all submissions for that event.
       setIsEventSubmissionsModalVisible(true);
     } else if (user.role === 'Campus Unit User') {
-      // For campus users, we first check if they have already submitted for this event.
       const existing = submissions.find(s => s.event_id === event.id && s.campus_id === String(user.campusId));
 
-      // We store the found submission (or null if none exists) in the state.
-      // This will be passed to the NewSubmissionModal to pre-fill the form for an update.
-      setSelectedSubmission(existing || null);
+      // --- THIS IS THE CHANGE ---
+      // If the event type is 'Variable', ALWAYS open a blank modal for a new entry.
+      // Otherwise, pass the existing submission to allow for updates.
+      if (event.gradingType === 'Variable') {
+        setSelectedSubmission(null);
+      } else {
+        setSelectedSubmission(existing || null);
+      }
+      // --- END OF CHANGE ---
 
-      // Open the modal for creating or updating a submission.
       setIsNewSubmissionModalVisible(true);
     }
   };
+
+  const handleSubmissionClick = (submission: Submission) => {
+    // Find the event associated with the clicked submission
+    const event = EVENTS.find(e => e.id === submission.event_id);
+    if (!event) return; // Safety check
+
+    // If the submission was rejected, open the editing modal to allow resubmission
+    if (submission.status === 'rejected') {
+      setSelectedEvent(event);
+      setSelectedSubmission(submission);
+      setIsNewSubmissionModalVisible(true);
+    } else {
+      // For 'pending' or 'approved' submissions, open the normal read-only details view
+      openSubmissionDetailModal(submission, 'view');
+    }
+  };
+
+  const handleSelectSubmissionFromCampusModal = (submission: Submission) => {
+  // 1. Close the current campus detail modal
+  setIsCampusDetailModalVisible(false);
+
+  // 2. Determine the correct mode ('evaluate' or 'view_and_edit')
+  const mode = submission.status === 'pending' ? 'evaluate' : 'view_and_edit';
+  
+  // 3. Open the main submission modal with the selected submission
+  openSubmissionDetailModal(submission, mode);
+};
 
   // --- Filtered Data ---
   const filteredSubmissions = React.useMemo(() => {
@@ -558,40 +730,83 @@ export default function App({ user, onLogout }: AppProps) {
 
 
   // --- DASHBOARDS & VIEWS ---
-  const AdminDashboard = () => (
-    <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold text-slate-800">Pending Submissions</h2>
-        <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-sm font-medium">{filteredSubmissions.length} pending</span>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-slate-200">
-              <th className="text-left p-3 font-semibold text-slate-600">Event</th>
-              <th className="text-left p-3 font-semibold text-slate-600">Campus</th>
-              <th className="text-left p-3 font-semibold text-slate-600">Date</th>
-              <th className="text-right p-3 font-semibold text-slate-600">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredSubmissions.map(sub => (
-              <tr key={sub.id} className="border-b border-slate-100 hover:bg-slate-50">
-                <td className="p-3 font-medium text-slate-700">{EVENTS.find(e => e.id === sub.event_id)?.title}</td>
-                <td className="p-3 text-slate-600">{campuses.find(c => c.id === sub.campus_id)?.name}</td>
-                <td className="p-3 text-slate-500">{sub.created_at}</td>
-                <td className="p-3 text-right">
-                  <button onClick={() => openSubmissionDetailModal(sub, 'evaluate')} className="bg-indigo-100 text-indigo-700 px-3 py-1.5 text-xs font-semibold rounded-md hover:bg-indigo-200">
-                    Review
-                  </button>
-                </td>
-              </tr>
+  // In App.tsx, find and replace the entire AdminDashboard component
+
+  const AdminDashboard = () => {
+    const filtered = React.useMemo(() => {
+      return submissions.filter(s => s.status === submissionFilter);
+    }, [submissions, submissionFilter]);
+
+    const handleAdminSubmissionClick = (submission: Submission) => {
+      // If pending, open in 'evaluate' mode. Otherwise, open in a new 'view_and_edit' mode.
+      const mode = submission.status === 'pending' ? 'evaluate' : 'view_and_edit';
+      openSubmissionDetailModal(submission, mode);
+    };
+
+    const tabs: SubmissionStatus[] = ['pending', 'approved', 'rejected'];
+
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200">
+        <div className="p-4 border-b border-slate-200">
+          <h2 className="text-xl font-bold text-slate-800 mb-4">All Submissions</h2>
+          {/* Filter Tabs */}
+          <div className="flex bg-slate-100 p-1 rounded-lg">
+            {tabs.map(tab => (
+              <button
+                key={tab}
+                onClick={() => setSubmissionFilter(tab)}
+                className={`w-1/3 py-2 px-3 text-sm font-semibold rounded-md transition-all capitalize ${submissionFilter === tab
+                  ? 'bg-white shadow text-indigo-600'
+                  : 'text-slate-500 hover:bg-slate-200'
+                  }`}
+              >
+                {tab} ({submissions.filter(s => s.status === tab).length})
+              </button>
             ))}
-          </tbody>
-        </table>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto p-2">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-200">
+                <th className="text-left p-3 font-semibold text-slate-600">Event</th>
+                <th className="text-left p-3 font-semibold text-slate-600">Campus</th>
+                <th className="text-left p-3 font-semibold text-slate-600">Date</th>
+                <th className="text-left p-3 font-semibold text-slate-600">Status</th>
+                <th className="text-right p-3 font-semibold text-slate-600">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(sub => (
+                <tr key={sub.id} className="border-b border-slate-100 hover:bg-slate-50">
+                  <td className="p-3 font-medium text-slate-700">{EVENTS.find(e => e.id === sub.event_id)?.title}</td>
+                  <td className="p-3 text-slate-600">{campuses.find(c => c.id === sub.campus_id)?.name}</td>
+                  <td className="p-3 text-slate-500">{sub.created_at}</td>
+                  <td className="p-3">
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full capitalize ${{
+                      'approved': 'bg-emerald-100 text-emerald-800',
+                      'rejected': 'bg-rose-100 text-rose-800',
+                      'pending': 'bg-amber-100 text-amber-800'
+                    }[sub.status] || 'bg-slate-100 text-slate-800'}`}>{sub.status}</span>
+                  </td>
+                  <td className="p-3 text-right">
+                    <button
+                      onClick={() => handleAdminSubmissionClick(sub)}
+                      className="bg-indigo-100 text-indigo-700 px-3 py-1.5 text-xs font-semibold rounded-md hover:bg-indigo-200"
+                    >
+                      {sub.status === 'pending' ? 'Review' : 'View Details'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {filtered.length === 0 && <p className="text-center text-slate-500 py-8">No submissions in this category.</p>}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const CampusDashboard = () => (
     <div className="space-y-8">
@@ -603,7 +818,7 @@ export default function App({ user, onLogout }: AppProps) {
         </div>
         <div className="space-y-4">
           {campusSubmissions.map((submission) => (
-            <div key={submission.id} className="border border-slate-200 rounded-xl p-4 hover:shadow-md transition-shadow cursor-pointer" onClick={() => openSubmissionDetailModal(submission, 'view')}>
+            <div key={submission.id} className="border border-slate-200 rounded-xl p-4 hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleSubmissionClick(submission)}>
               <div className="flex justify-between items-start mb-2">
                 <h3 className="font-bold text-slate-800">{EVENTS.find(e => e.id === submission.event_id)?.title}</h3>
                 <span className={`px-2 py-1 text-xs font-medium rounded-full ${{
@@ -638,7 +853,8 @@ export default function App({ user, onLogout }: AppProps) {
       case 'Submissions':
         return user.role === 'State Admin' ? <AdminDashboard /> : <CampusDashboard />;
       case 'Leaderboard':
-        return <Leaderboard campuses={campuses} />;
+  // Only render the Leaderboard if the user is a State Admin
+        return user.role === 'State Admin' ? <Leaderboard campuses={campuses} onCampusClick={openCampusDetailModal} /> : null;
       case 'Document':
         return <DocumentViewer />;
       case 'Retention Analysis':
@@ -685,11 +901,11 @@ export default function App({ user, onLogout }: AppProps) {
             <div className="w-full xl:flex-1 flex flex-col gap-8">
               {renderActiveView()}
             </div>
-            {activeView === 'Overview' && (
-              <div className="w-full xl:w-96 flex-col gap-8 hidden xl:flex">
-                <Leaderboard campuses={campuses} />
-              </div>
-            )}
+            {activeView === 'Overview' && user.role === 'State Admin' && (
+  <div className="w-full xl:w-96 flex-col gap-8 hidden xl:flex">
+    <Leaderboard campuses={campuses} onCampusClick={openCampusDetailModal} />
+  </div>
+)}
           </div>
         </div>
       </main>
@@ -702,7 +918,10 @@ export default function App({ user, onLogout }: AppProps) {
         event={selectedSubmission ? EVENTS.find(e => e.id === selectedSubmission.event_id) ?? null : null}
         campus={selectedSubmission ? campuses.find(c => c.id === selectedSubmission.campus_id) ?? null : null}
         onEvaluate={handleEvaluation}
+        onUpdate={handleUpdateEvaluation}
         mode={modalMode}
+        setNotification={setNotification} // Add this line
+        setLightboxImageUrl={setLightboxImageUrl}
       />
       <NewSubmissionModal
         visible={isNewSubmissionModalVisible}
@@ -726,6 +945,18 @@ export default function App({ user, onLogout }: AppProps) {
         type={notification.type}
         message={notification.message}
       />
+      <ImageViewerModal
+        imageUrl={lightboxImageUrl}
+        onClose={() => setLightboxImageUrl(null)}
+      />
+
+      <CampusDetailModal
+    visible={isCampusDetailModalVisible}
+    onClose={() => setIsCampusDetailModalVisible(false)}
+    campus={selectedCampus}
+    submissions={submissions}
+    onSelectSubmission={handleSelectSubmissionFromCampusModal} // [ADD THIS PROP]
+  />
     </div>
   );
 }

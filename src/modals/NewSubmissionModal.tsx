@@ -4,6 +4,12 @@ import type { Event, Submission, User } from '../utils/types';
 import ModalWrapper from './ModalWrapper';
 import { CloudUpload } from 'lucide-react';
 
+const InfoIcon = ({ className = "w-5 h-5" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+    </svg>
+);
+
 interface NewSubmissionModalProps {
   visible: boolean;
   onHide: () => void;
@@ -239,11 +245,29 @@ const NewSubmissionModal: React.FC<NewSubmissionModalProps> = ({
     <ModalWrapper visible={visible} onHide={onHide} size="lg">
       <div className="p-6">
         <h2 className="text-2xl font-bold mb-2">
-          {existingSubmission ? 'Update Submission' : event?.title}
-        </h2>
+                    {/* [OPTIONAL] Better title for resubmission */}
+                    {existingSubmission?.status === 'rejected' ? 'Resubmit Entry' : (existingSubmission ? 'Update Submission' : event?.title)}
+                </h2>
         <p className="text-slate-600 mb-6">
           {existingSubmission ? 'Update your entry for this event.' : 'Submit your entry for this event.'}
         </p>
+
+        {existingSubmission?.status === 'rejected' && existingSubmission.feedback && (
+                    <div className="bg-amber-50 border-l-4 border-amber-400 p-4 mb-6 rounded-r-lg shadow-sm">
+                        <div className="flex">
+                            <div className="flex-shrink-0">
+                                <InfoIcon className="h-5 w-5 text-amber-500" />
+                            </div>
+                            <div className="ml-3">
+                                <p className="text-sm font-bold text-amber-800">Admin Feedback</p>
+                                <p className="mt-1 text-sm text-amber-700 whitespace-pre-wrap">
+                                    {existingSubmission.feedback}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
         <div className="space-y-4 mb-6">{renderFormFields()}</div>
         <div className="flex justify-end gap-4">
           <button

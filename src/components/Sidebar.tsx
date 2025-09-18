@@ -40,14 +40,14 @@ const navItems = [
             { name: 'Overview', icon: HomeIcon },
             { name: 'Events', icon: CalendarIcon },
             { name: 'Submissions', icon: InboxIcon },
-            { name: 'Leaderboard', icon: TrophyIcon },
         ] : []),
 
         // --- State Admin Only Items ---
         ...(user.role === 'State Admin' ? [{ name: 'Submission Overview', icon: PieChartIcon }] : []),
         ...(user.role === 'State Admin' ? [{ name: 'Registration Overview', icon: BarChartIcon }] : []),
         ...(user.role === 'State Admin' ? [{ name: 'Retention Analysis', icon: HistoryIcon }] : []),
-
+        ...(user.role === 'State Admin' ? [{ name: 'Leaderboard', icon: TrophyIcon }] : []),
+        
         // --- District Admin Only Items ---
         ...(user.role === 'District' ? [{ name: 'District Current Year', icon: BarChartIcon }] : []),
         ...(user.role === 'District' ? [{ name: 'District Past Year', icon: HistoryIcon }] : []),

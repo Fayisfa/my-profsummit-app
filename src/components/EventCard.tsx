@@ -13,16 +13,33 @@ interface EventCardProps {
 const EventCard: React.FC<EventCardProps> = ({ event, user, onAction, submissions }) => {
     const existingSubmission = user.campusId ? submissions.find(s => s.event_id === event.id && s.campus_id === String(user.campusId)) : null;
 
-    const getActionLabel = () => {
-        if (user.role === 'Campus Unit User') {
-            if (existingSubmission) {
-                return existingSubmission.status === 'pending' ? 'Update Entry' : 'View Entry';
+// In EventCard.tsx
+
+const getActionLabel = () => {
+    if (user.role === 'Campus Unit User') {
+        // [MODIFIED] Prioritize the check for 'Variable' grading type.
+        // If it's a variable event, the user can always submit another entry.
+      if ([
+  'inter campus visit',
+  'chumarezhuth',
+  'weekly e-posters',
+  'independent events'
+].includes(event.title.toLowerCase())) {
+  return 'Submit New Entry';
+}
+
+        // Original logic for all other event types
+        if (existingSubmission) {
+            if (existingSubmission.status === 'rejected') {
+                return 'Edit & Resubmit';
             }
-            return 'Submit Entry';
+            return existingSubmission.status === 'pending' ? 'Update Entry' : 'View Entry';
         }
-        if (user.role.includes('Admin')) return 'View Submissions';
-        return 'View Details';
-    };
+        return 'Submit Entry';
+    }
+    if (user.role.includes('Admin')) return 'View Submissions';
+    return 'View Details';
+};
 
     const getSubmissionTypeColor = (type: string) => ({
         'Media Upload': 'bg-purple-100 text-purple-800',

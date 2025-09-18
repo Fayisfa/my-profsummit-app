@@ -122,7 +122,7 @@ export const uploadFile = async (file: File) => {
  * @param submissionData The data for the submission.
  * @returns The JSON response from the server.
  */
-export const createOrUpdateSubmission = async (submissionData: Partial<Submission>) => {
+export const createOrUpdateSubmission = async (submissionData: Partial<Submission> & { gradingType?: string }) => {
     try {
         // Point to the new "upsert" script
         const response = await fetch(`${API_BASE_URL}/submissions/createSubmission.php`, {
