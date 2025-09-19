@@ -285,11 +285,11 @@ const SubmissionModal: React.FC<{
   const handleEvaluation = (status: 'approved' | 'rejected') => {
     if (!onEvaluate) return;
 
-    if (status === 'approved' && event.gradingType === 'Discretion' && points <= 0) {
+    if (status === 'approved' && event.gradingType === 'Manual' && points <= 0) {
       setNotification({
         visible: true,
         type: 'error',
-        message: "For 'Discretion' type events, marks must be greater than 0 to approve."
+        message: "For 'Manual' type events, marks must be greater than 0 to approve."
       });
       return;
     }
@@ -677,7 +677,7 @@ export default function App({ user, onLogout }: AppProps) {
       // --- THIS IS THE CHANGE ---
       // If the event type is 'Variable', ALWAYS open a blank modal for a new entry.
       // Otherwise, pass the existing submission to allow for updates.
-      if (event.gradingType === 'Variable') {
+      if (event.gradingType === 'Manual') {
         setSelectedSubmission(null);
       } else {
         setSelectedSubmission(existing || null);

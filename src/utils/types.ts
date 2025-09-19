@@ -2,7 +2,7 @@
 
 export type UserRole = 'State Admin' | 'Campus Unit User' | 'District' | 'RSC Admin';
 export type View = 'Overview' | 'Events' | 'Submissions' | 'Leaderboard' | 'Document'| 'Registration Overview' | 'Submission Overview' | 'Retention Analysis' | 'District Current Year' | 'District Past Year'; ;
-export type GradingType = 'Fixed' | 'Variable' | 'Tiered' | 'Discretion';
+export type GradingType = 'Fixed' | 'Variable' | 'Tiered' | 'Discretion' | 'Manual';
 export type SubmissionType = 'Media Upload' | 'Quantitative Input' | 'Text Submission' | 'Simple Participation' | 'Image Upload' | 'Video Upload';
 export type SubmissionStatus = 'pending' | 'approved' | 'rejected'; // Updated to match DB
 

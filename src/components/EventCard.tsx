@@ -19,12 +19,7 @@ const getActionLabel = () => {
     if (user.role === 'Campus Unit User') {
         // [MODIFIED] Prioritize the check for 'Variable' grading type.
         // If it's a variable event, the user can always submit another entry.
-      if ([
-  'inter campus visit',
-  'chumarezhuth',
-  'weekly e-posters',
-  'independent events'
-].includes(event.title.toLowerCase())) {
+if (event.gradingType === 'Manual') {
   return 'Submit New Entry';
 }
 
