@@ -15,7 +15,7 @@ import {
 
 } from '../utils/Icons';
 import profSummitP from '/assets/profsummitP.png';
-import { History as HistoryIcon } from 'lucide-react';
+import { History as HistoryIcon, LayoutGridIcon } from 'lucide-react';
 
 interface SidebarProps {
     user: User;
@@ -51,6 +51,7 @@ const navItems = [
         // --- District Admin Only Items ---
         ...(user.role === 'District' ? [{ name: 'District Current Year', icon: BarChartIcon }] : []),
         ...(user.role === 'District' ? [{ name: 'District Past Year', icon: HistoryIcon }] : []),
+        ...(user.role === 'District' ? [{ name: 'Division Overview', icon: LayoutGridIcon }] : []),
         
         // --- Document Link (Show for everyone EXCEPT District Admins) ---
         ...(user.role !== 'District' ? [{ name: 'Document', icon: DocumentIcon }] : []),

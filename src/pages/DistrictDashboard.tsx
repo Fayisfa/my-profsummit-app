@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import type { User } from '../utils/types';
 import { getRegisteredData } from '../api';
-import { Users, UserPlus, Calendar, Home, Building, ChevronDown, Search, Filter, Download, TrendingUp, Award } from 'lucide-react';
+import { Users, UserPlus, Calendar, Home, Building, ChevronDown, Filter, TrendingUp, Award } from 'lucide-react';
 import type { RegistrationData } from '../utils/types';
 import { exportToExcel } from '../utils/export';
 import RegistrationTrend from '../components/RegistrationTrend';
