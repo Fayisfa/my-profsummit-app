@@ -47,6 +47,7 @@ const navItems = [
         ...(user.role === 'State Admin' ? [{ name: 'Registration Overview', icon: BarChartIcon }] : []),
         ...(user.role === 'State Admin' ? [{ name: 'Retention Analysis', icon: HistoryIcon }] : []),
         ...(user.role === 'State Admin' ? [{ name: 'Leaderboard', icon: TrophyIcon }] : []),
+        ...(user.role === 'State Admin' ? [{ name: 'Division Overview', icon: LayoutGridIcon }] : []),
         
         // --- District Admin Only Items ---
         ...(user.role === 'District' ? [{ name: 'District Current Year', icon: BarChartIcon }] : []),

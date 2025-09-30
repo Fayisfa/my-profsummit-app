@@ -870,7 +870,7 @@ export default function App({ user, onLogout }: AppProps) {
       case 'District Current Year':
         return user.role === 'District' ? <DistrictDashboard user={user} onLogout={onLogout} /> : null;
       case 'Division Overview':
-        return user.role === 'District' ? <DivisionDashboard user={user} onLogout={onLogout} /> : null;
+        return user.role === 'District' || user.role === 'State Admin' ? <DivisionDashboard user={user} onLogout={onLogout} /> : null;
 
       case 'District Past Year':
         return user.role === 'District' ? <PastYearDistrictView user={user} onLogout={onLogout} /> : null;
