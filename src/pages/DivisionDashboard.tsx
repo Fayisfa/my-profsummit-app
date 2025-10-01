@@ -571,6 +571,7 @@ import { getRegisteredData, getAllRegisteredData } from '../api';
 import { Users, Building, Home, ChevronDown, TrendingUp, Map } from 'lucide-react';
 import { exportToExcel } from '../utils/export';
 import HeaderActions from '../components/HeaderActions';
+import { formatDataForWhatsApp } from '../utils/whatsapp';
 
 //=================================================================
 //  1. REUSABLE SUB-COMPONENTS
@@ -739,48 +740,54 @@ const DivisionDashboard: React.FC<DivisionDashboardProps> = ({ user, onLogout })
     loadData();
   }, [user, isStateAdmin]);
 
-  const { summaryStats, sortedDivisions, districtsForFilter, finalFilteredData } = useMemo(() => {
-    const districtKey = viewMode === 'college' ? 'college_district' : 'native_district';
-    const divisionKey = viewMode === 'college' ? 'college_division' : 'native_division';
+// In DivisionDashboard.tsx
 
-    let dataToProcess: RegistrationData[] = [];
+const { summaryStats, sortedDivisions, districtsForFilter, finalFilteredData, whatsappText } = useMemo(() => {
+  const districtKey = viewMode === 'college' ? 'college_district' : 'native_district';
+  const divisionKey = viewMode === 'college' ? 'college_division' : 'native_division';
 
-    if (isStateAdmin) {
-      dataToProcess = selectedDistrict === 'all'
-        ? allData
-        : allData.filter(student => student[districtKey] === selectedDistrict);
-    } else {
-      dataToProcess = allData.filter(student => student[districtKey] === user.name);
+  let dataToProcess: RegistrationData[] = [];
+
+  if (isStateAdmin) {
+    dataToProcess = selectedDistrict === 'all'
+      ? allData
+      : allData.filter(student => student[districtKey] === selectedDistrict);
+  } else {
+    dataToProcess = allData.filter(student => student[districtKey] === user.name);
+  }
+
+  const groupedByDivision = dataToProcess.reduce((acc, student) => {
+    const division = student[divisionKey];
+    if (division) {
+      if (!acc[division]) acc[division] = [];
+      acc[division].push(student);
     }
+    return acc;
+  }, {} as Record<string, RegistrationData[]>);
 
-    const groupedByDivision = dataToProcess.reduce((acc, student) => {
-      const division = student[divisionKey];
-      if (division) {
-        if (!acc[division]) acc[division] = [];
-        acc[division].push(student);
-      }
-      return acc;
-    }, {} as Record<string, RegistrationData[]>);
+  const sortedDivisionEntries = Object.entries(groupedByDivision)
+    .sort(([, a_students], [, b_students]) => b_students.length - a_students.length);
 
-    const sortedDivisionEntries = Object.entries(groupedByDivision)
-      .sort(([, a_students], [, b_students]) => b_students.length - a_students.length);
+  // --- FIX: Calculate whatsappText AFTER sortedDivisionEntries is created ---
+  const whatsappText = formatDataForWhatsApp('Division', sortedDivisionEntries);
 
-    const allDistrictsForFilter = isStateAdmin
-      ? [...new Set(allData.map(row => row[districtKey]).filter(Boolean))].sort()
-      : [];
+  const allDistrictsForFilter = isStateAdmin
+    ? [...new Set(allData.map(row => row[districtKey]).filter(Boolean))].sort()
+    : [];
 
-    const stats = {
-      totalRegistrations: dataToProcess.length,
-      totalDivisions: sortedDivisionEntries.length,
-    };
+  const stats = {
+    totalRegistrations: dataToProcess.length,
+    totalDivisions: sortedDivisionEntries.length,
+  };
 
-    return {
-      summaryStats: stats,
-      sortedDivisions: sortedDivisionEntries,
-      districtsForFilter: allDistrictsForFilter,
-      finalFilteredData: dataToProcess,
-    };
-  }, [allData, viewMode, user.name, isStateAdmin, selectedDistrict]);
+  return {
+    summaryStats: stats,
+    sortedDivisions: sortedDivisionEntries,
+    districtsForFilter: allDistrictsForFilter,
+    finalFilteredData: dataToProcess,
+    whatsappText: whatsappText, // Return the correctly calculated text
+  };
+}, [allData, viewMode, user.name, isStateAdmin, selectedDistrict]);
 
   const handleExport = () => {
     const date = new Date().toISOString().split('T')[0];
@@ -809,7 +816,7 @@ const DivisionDashboard: React.FC<DivisionDashboardProps> = ({ user, onLogout })
                 {isStateAdmin ? 'Viewing all registrations' : `Showing divisions for ${user.name} District`}
               </p>
             </div>
-            <HeaderActions onExport={handleExport} onLogout={onLogout} />
+            <HeaderActions onExport={handleExport} onLogout={onLogout} whatsappText={whatsappText} />
           </div>
         </div>
       </div>
