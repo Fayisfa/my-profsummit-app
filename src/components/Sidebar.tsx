@@ -15,7 +15,7 @@ import {
 
 } from '../utils/Icons';
 import profSummitP from '/assets/profsummitP.png';
-import { History as HistoryIcon, LayoutGridIcon } from 'lucide-react';
+import { BuildingIcon, History as HistoryIcon, LayoutGridIcon, ShareIcon } from 'lucide-react';
 
 interface SidebarProps {
     user: User;
@@ -47,12 +47,15 @@ const navItems = [
         ...(user.role === 'State Admin' ? [{ name: 'Registration Overview', icon: BarChartIcon }] : []),
         ...(user.role === 'State Admin' ? [{ name: 'Retention Analysis', icon: HistoryIcon }] : []),
         ...(user.role === 'State Admin' ? [{ name: 'Leaderboard', icon: TrophyIcon }] : []),
+        ...(user.role === 'State Admin' ? [{ name: 'College Overview', icon: BuildingIcon }] : []),
         ...(user.role === 'State Admin' ? [{ name: 'Division Overview', icon: LayoutGridIcon }] : []),
+        ...(user.role === 'State Admin' || user.role === 'District' ? [{ name: 'Share Center', icon: ShareIcon }] : []),
         
         // --- District Admin Only Items ---
         ...(user.role === 'District' ? [{ name: 'District Current Year', icon: BarChartIcon }] : []),
         ...(user.role === 'District' ? [{ name: 'District Past Year', icon: HistoryIcon }] : []),
         ...(user.role === 'District' ? [{ name: 'Division Overview', icon: LayoutGridIcon }] : []),
+        ...(user.role === 'District' ? [{ name: 'College Overview', icon: BuildingIcon }] : []),
         
         // --- Document Link (Show for everyone EXCEPT District Admins) ---
         ...(user.role !== 'District' ? [{ name: 'Document', icon: DocumentIcon }] : []),

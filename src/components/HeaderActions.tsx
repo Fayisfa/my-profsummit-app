@@ -21,7 +21,7 @@ const HeaderActions: React.FC<HeaderActionsProps> = ({ onExport, onLogout, whats
   return (
     <div className="flex items-center gap-2 sm:gap-3">
 
-      {whatsappText && (
+      {/* {whatsappText && (
         <button
           onClick={() => shareToWhatsApp(whatsappText)}
           className="flex items-center gap-2 px-3 py-2 text-xs lg:text-sm font-semibold text-emerald-700 bg-emerald-100 rounded-lg hover:bg-emerald-200 transition-colors"
@@ -29,7 +29,7 @@ const HeaderActions: React.FC<HeaderActionsProps> = ({ onExport, onLogout, whats
           <WhatsAppIcon />
           <span className="hidden lg:inline">Share Summary</span>
         </button>
-      )}
+      )} */}
 
       
       {/* Export Button */}
