@@ -12,7 +12,8 @@ const ShareCenter: React.FC<{ user: User }> = ({ user }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   // --- State for all filters ---
-  const [reportType, setReportType] = useState<'college' | 'division'>('college');
+  // NEW: Added 'district' to the possible report types
+  const [reportType, setReportType] = useState<'college' | 'division' | 'district'>('college');
   const [topN, setTopN] = useState<number>(10);
   const [viewMode, setViewMode] = useState<'college' | 'native'>('college');
   const [selectedDistrict, setSelectedDistrict] = useState('all');
@@ -44,26 +45,38 @@ const ShareCenter: React.FC<{ user: User }> = ({ user }) => {
       dataToProcess = dataToProcess.filter(student => student.updated_at.startsWith(todayString));
     }
     
-    // 2. Apply role-based and district filters
-    const districtKey = viewMode === 'college' ? 'college_district' : 'native_district';
-    if (isStateAdmin) {
-      if (selectedDistrict !== 'all') {
-        dataToProcess = dataToProcess.filter(student => student[districtKey] === selectedDistrict);
+    // 2. Apply role-based and district filters (but not for district-wise report)
+    // NEW: The district filter is ignored when the report type is 'district'
+    if (reportType !== 'district') {
+      const districtKey = viewMode === 'college' ? 'college_district' : 'native_district';
+      if (isStateAdmin) {
+        if (selectedDistrict !== 'all') {
+          dataToProcess = dataToProcess.filter(student => student[districtKey] === selectedDistrict);
+        }
+      } else {
+        dataToProcess = dataToProcess.filter(student => student[districtKey] === user.name);
       }
-    } else {
-      dataToProcess = dataToProcess.filter(student => student[districtKey] === user.name);
     }
 
-    // 3. Group the data by the selected report type
-    const groupKey = reportType === 'college' ? 'college' : (viewMode === 'college' ? 'college_division' : 'native_division');
+    // 3. Determine the key to group data by
+    // NEW: Logic to handle the new 'district' report type
+    let groupKey: keyof RegistrationData;
+    if (reportType === 'college') {
+      groupKey = 'college';
+    } else if (reportType === 'division') {
+      groupKey = viewMode === 'college' ? 'college_division' : 'native_division';
+    } else { // This handles the 'district' case
+      groupKey = viewMode === 'college' ? 'college_district' : 'native_district';
+    }
+    
     const groupedData = dataToProcess
-  .filter(student => student[groupKey]) // 1. Filter out entries with no division/college name
-  .reduce((acc, student) => {
-    const key = student[groupKey]; // 2. No fallback is needed now
-    if (!acc[key]) acc[key] = 0;
-    acc[key]++;
-    return acc;
-  }, {} as Record<string, number>);
+      .filter(student => student[groupKey]) 
+      .reduce((acc, student) => {
+        const key = student[groupKey]!;
+        if (!acc[key]) acc[key] = 0;
+        acc[key]++;
+        return acc;
+      }, {} as Record<string, number>);
 
     // 4. Sort and slice the data based on the Top N filter
     let sorted = Object.entries(groupedData).sort(([, a], [, b]) => b - a);
@@ -72,9 +85,16 @@ const ShareCenter: React.FC<{ user: User }> = ({ user }) => {
     }
     
     // 5. Generate the text for WhatsApp
+    // NEW: Dynamically set the report label in the title
+    const reportTypeLabel = 
+      reportType === 'college' ? 'Colleges' :
+      reportType === 'division' ? 'Divisions' : 'Districts';
+
     let title = `🏆 *ProfSummit Registration Summary* 🏆\n`;
-    title += `Top ${topN === 0 ? '' : topN} ${reportType === 'college' ? 'Colleges' : 'Divisions'} (${dateRange === 'today' ? 'Today' : 'All Time'})\n`;
-    if(isStateAdmin && selectedDistrict !== 'all') {
+    title += `Top ${topN === 0 ? '' : topN} ${reportTypeLabel} (${dateRange === 'today' ? 'Today' : 'All Time'})\n`;
+    
+    // NEW: Don't show the district filter text if it's a district report
+    if (isStateAdmin && selectedDistrict !== 'all' && reportType !== 'district') {
       title += `_District: ${selectedDistrict}_\n`;
     }
     title += `_View Mode: ${viewMode === 'college' ? 'College' : 'Native'}_\n\n`;
@@ -84,7 +104,7 @@ const ShareCenter: React.FC<{ user: User }> = ({ user }) => {
       body = '_No registrations match the current filters._';
     }
     
-    const footer = `\n\nTotal Registrations in View: *${dataToProcess.length}*\n_Generated: ${new Date().toLocaleString()}_`;
+    const footer = `\n\nTotal Registrations in View: *${dataToProcess.length}*\n_Generated: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}_`;
     
     const districts = isStateAdmin ? [...new Set(allData.map(row => viewMode === 'college' ? row.college_district : row.native_district).filter(Boolean))].sort() : [];
 
@@ -122,9 +142,13 @@ const ShareCenter: React.FC<{ user: User }> = ({ user }) => {
           <div>
             <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2"><TrendingUp className="w-4 h-4 text-slate-400" /> Report Type</h3>
             <div className="relative">
-              <select value={reportType} onChange={(e) => setReportType(e.target.value as 'college' | 'division')} className="w-full pl-4 pr-10 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white appearance-none">
+              <select value={reportType} onChange={(e) => setReportType(e.target.value as 'college' | 'division' | 'district')} className="w-full pl-4 pr-10 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white appearance-none">
                 <option value="college">College-wise</option>
                 <option value="division">Division-wise</option>
+                {/* NEW: Conditional option for State Admin */}
+                {isStateAdmin && (
+                  <option value="district">District-wise</option>
+                )}
               </select>
               <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
             </div>
@@ -168,7 +192,13 @@ const ShareCenter: React.FC<{ user: User }> = ({ user }) => {
             <div>
               <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2"><Map className="w-4 h-4 text-slate-400" /> District</h3>
               <div className="relative">
-                <select value={selectedDistrict} onChange={(e) => setSelectedDistrict(e.target.value)} className="w-full pl-4 pr-10 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white appearance-none">
+                {/* NEW: The select is now disabled when reportType is 'district' */}
+                <select 
+                  value={selectedDistrict} 
+                  onChange={(e) => setSelectedDistrict(e.target.value)} 
+                  disabled={reportType === 'district'}
+                  className="w-full pl-4 pr-10 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white appearance-none disabled:bg-slate-100 disabled:cursor-not-allowed"
+                >
                   <option value="all">All Districts</option>
                   {districtsForFilter.map((dist) => <option key={dist} value={dist}>{dist}</option>)}
                 </select>
