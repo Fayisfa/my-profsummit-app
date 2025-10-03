@@ -16,22 +16,31 @@ const PastYearDistrictView: React.FC<PastYearDistrictViewProps> = ({ user, onLog
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const fetchData = async () => {
-            if (!user?.name) return; // Ensure user is available
-            setIsLoading(true);
-            const allPastData = await getPastYearRegisteredData();
-            
-            // Filter the data for the current district immediately after fetching
-            if (Array.isArray(allPastData)) {
-                const districtMembers = allPastData.filter(
-                    m => m.college_district === user.name || m.native_district === user.name
-                );
-                setPastMembers(districtMembers);
+    const fetchData = async () => {
+        if (!user?.name) return;
+        setIsLoading(true);
+        const allPastData = await getPastYearRegisteredData();
+        
+        if (Array.isArray(allPastData)) {
+            // --- NEW LOGIC START ---
+            // 1. Determine the base district name for filtering.
+            let filterDistrictName = user.name;
+            if (user.name === 'Kozhikode South' || user.name === 'Kozhikode North') {
+                filterDistrictName = 'Kozhikode';
             }
-            setIsLoading(false);
-        };
-        fetchData();
-    }, [user]);
+            // Add other similar mappings here if needed, e.g., for Ernakulam East/West.
+            // --- NEW LOGIC END ---
+
+            const districtMembers = allPastData.filter(
+                // 2. Use the new variable for filtering instead of user.name directly.
+                m => m.college_district === filterDistrictName || m.native_district === filterDistrictName
+            );
+            setPastMembers(districtMembers);
+        }
+        setIsLoading(false);
+    };
+    fetchData();
+}, [user]);
 
     const handleExport = () => {
         const formattedData = pastMembers.map((row, index) => ({
