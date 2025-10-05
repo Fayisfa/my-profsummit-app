@@ -114,7 +114,7 @@ const ShareCenter: React.FC<{ user: User }> = ({ user }) => {
 
     const sorted = Object.entries(groupedData).sort(([, a], [, b]) => b - a);
     
-    let title = `🌸 *Girls Registration - District Wise* 🌸\n`;
+    let title = ` *Girls Registration - District Wise* \n`;
     title += `_View Mode: ${viewMode === 'college' ? 'College' : 'Native'}_\n\n`;
     
     let body = sorted.map(([name, count], index) => `${index + 1}. ${name} - *${count}*`).join('\n');

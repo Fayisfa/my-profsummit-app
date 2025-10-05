@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import type { User } from '../utils/types';
 import { getRegisteredData, getGirlsRegistration } from '../api';
-import { Users, Calendar, Home, Building, ChevronDown, Filter, TrendingUp, Award, Venus, Mars } from 'lucide-react';
+import { Users, Calendar, Home, Building, ChevronDown, Filter, TrendingUp, Award, UserRound, PersonStanding } from 'lucide-react';
 import type { RegistrationData } from '../utils/types';
 import { exportToExcel } from '../utils/export';
 import RegistrationTrend from '../components/RegistrationTrend';
@@ -333,13 +333,13 @@ const DistrictDashboard: React.FC<DistrictDashboardProps> = ({ user, onLogout })
           <SummaryCard
             title="Boys Registrations"
             value={summaryStats.boys}
-            icon={Mars}
+            icon={PersonStanding}
             gradient="bg-gradient-to-br from-sky-500 via-sky-600 to-cyan-600"
           />
           <SummaryCard
             title="Girls Registrations"
             value={summaryStats.girls}
-            icon={Venus}
+            icon={UserRound}
             gradient="bg-gradient-to-br from-pink-500 via-pink-600 to-rose-600"
           />
           <SummaryCard
