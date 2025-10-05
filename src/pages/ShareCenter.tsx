@@ -1,24 +1,23 @@
-'use client';
-
-import React, { useState, useEffect, useMemo } from 'react';
+import React, {useState, useEffect, useMemo } from 'react';
 import type { User, RegistrationData } from '../utils/types';
 import { shareToWhatsApp } from '../utils/whatsapp';
-import { getAllRegisteredData } from '../api';
-import { Building, Home, Map, ChevronDown, Copy, Share2, TrendingUp, Filter, Eye, Calendar } from 'lucide-react';
+import { getAllRegisteredData, getGirlsRegistration } from '../api';
+import { Building, Home, Map, ChevronDown, Copy, Share2, TrendingUp, Filter, Eye, Calendar, Venus } from 'lucide-react';
 
 const ShareCenter: React.FC<{ user: User }> = ({ user }) => {
   // --- State for data and loading ---
   const [allData, setAllData] = useState<RegistrationData[]>([]);
+  const [allGirlsData, setAllGirlsData] = useState<RegistrationData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // --- State for all filters ---
-  // NEW: Added 'district' to the possible report types
   const [reportType, setReportType] = useState<'college' | 'division' | 'district'>('college');
   const [topN, setTopN] = useState<number>(10);
   const [viewMode, setViewMode] = useState<'college' | 'native'>('college');
   const [selectedDistrict, setSelectedDistrict] = useState('all');
   const [dateRange, setDateRange] = useState<'all' | 'today'>('all');
   const [copySuccess, setCopySuccess] = useState('');
+  const [displayText, setDisplayText] = useState('');
 
   const isStateAdmin = user.role === 'State Admin';
 
@@ -26,96 +25,110 @@ const ShareCenter: React.FC<{ user: User }> = ({ user }) => {
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
-      const data = await getAllRegisteredData();
-      if (Array.isArray(data)) {
-        setAllData(data);
+      const [mainData, girlsData] = await Promise.all([
+        getAllRegisteredData(),
+        getGirlsRegistration()
+      ]);
+
+      if (Array.isArray(mainData)) {
+        setAllData(mainData);
+      }
+      if (Array.isArray(girlsData)) {
+        setAllGirlsData(girlsData);
       }
       setIsLoading(false);
     };
     loadData();
   }, []);
 
-  // --- Data Processing ---
+  // --- Data Processing (from main filters) ---
   const { reportText, districtsForFilter } = useMemo(() => {
     let dataToProcess = allData;
-
-    // 1. Apply date range filter
     if (dateRange === 'today') {
-      const todayString = new Date().toISOString().split('T')[0];
-      dataToProcess = dataToProcess.filter(student => student.updated_at.startsWith(todayString));
+        const todayString = new Date().toISOString().split('T')[0];
+        dataToProcess = dataToProcess.filter(student => student.updated_at && student.updated_at.startsWith(todayString));
     }
-    
-    // 2. Apply role-based and district filters (but not for district-wise report)
-    // NEW: The district filter is ignored when the report type is 'district'
     if (reportType !== 'district') {
-      const districtKey = viewMode === 'college' ? 'college_district' : 'native_district';
-      if (isStateAdmin) {
-        if (selectedDistrict !== 'all') {
-          dataToProcess = dataToProcess.filter(student => student[districtKey] === selectedDistrict);
+        const districtKey = viewMode === 'college' ? 'college_district' : 'native_district';
+        if (isStateAdmin) {
+            if (selectedDistrict !== 'all') {
+                dataToProcess = dataToProcess.filter(student => student[districtKey] === selectedDistrict);
+            }
+        } else {
+            dataToProcess = dataToProcess.filter(student => student[districtKey] === user.name);
         }
-      } else {
-        dataToProcess = dataToProcess.filter(student => student[districtKey] === user.name);
-      }
     }
-
-    // 3. Determine the key to group data by
-    // NEW: Logic to handle the new 'district' report type
     let groupKey: keyof RegistrationData;
     if (reportType === 'college') {
-      groupKey = 'college';
+        groupKey = 'college';
     } else if (reportType === 'division') {
-      groupKey = viewMode === 'college' ? 'college_division' : 'native_division';
-    } else { // This handles the 'district' case
-      groupKey = viewMode === 'college' ? 'college_district' : 'native_district';
+        groupKey = viewMode === 'college' ? 'college_division' : 'native_division';
+    } else {
+        groupKey = viewMode === 'college' ? 'college_district' : 'native_district';
     }
-    
-    const groupedData = dataToProcess
-      .filter(student => student[groupKey]) 
-      .reduce((acc, student) => {
+    const groupedData = dataToProcess.filter(student => student[groupKey]).reduce((acc, student) => {
         const key = student[groupKey]!;
+        if (!acc[key]) acc[key] = 0;
+        acc[key]++;
+        return acc;
+    }, {} as Record<string, number>);
+    let sorted = Object.entries(groupedData).sort(([, a], [, b]) => b - a);
+    if (topN !== 0) {
+        sorted = sorted.slice(0, topN);
+    }
+    const reportTypeLabel = reportType === 'college' ? 'Colleges' : reportType === 'division' ? 'Divisions' : 'Districts';
+    let title = `🏆 *ProfSummit Registration Summary* 🏆\n`;
+    title += `Top ${topN === 0 ? '' : topN} ${reportTypeLabel} (${dateRange === 'today' ? 'Today' : 'All Time'})\n`;
+    if (isStateAdmin && selectedDistrict !== 'all' && reportType !== 'district') {
+        title += `_District: ${selectedDistrict}_\n`;
+    }
+    title += `_View Mode: ${viewMode === 'college' ? 'College' : 'Native'}_\n\n`;
+    let body = sorted.map(([name, count], index) => `${index + 1}. ${name} - *${count}*`).join('\n');
+    if (sorted.length === 0) {
+        body = '_No registrations match the current filters._';
+    }
+    const footer = `\n\nTotal Registrations in View: *${dataToProcess.length}*\n_Generated: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}_`;
+    const districts = isStateAdmin ? [...new Set(allData.map(row => viewMode === 'college' ? row.college_district : row.native_district).filter(Boolean))].sort() : [];
+
+    return {
+        reportText: title + body + footer,
+        districtsForFilter: districts,
+    };
+  }, [allData, reportType, topN, viewMode, selectedDistrict, user, isStateAdmin, dateRange]);
+  
+  useEffect(() => {
+    setDisplayText(reportText);
+  }, [reportText]);
+
+  const generateGirlsDistrictReport = () => {
+    const districtKey = viewMode === 'college' ? 'college_district' : 'native_district';
+
+    const groupedData = allGirlsData
+      .filter(student => student[districtKey])
+      .reduce((acc, student) => {
+        const key = student[districtKey]!;
         if (!acc[key]) acc[key] = 0;
         acc[key]++;
         return acc;
       }, {} as Record<string, number>);
 
-    // 4. Sort and slice the data based on the Top N filter
-    let sorted = Object.entries(groupedData).sort(([, a], [, b]) => b - a);
-    if (topN !== 0) {
-      sorted = sorted.slice(0, topN);
-    }
+    const sorted = Object.entries(groupedData).sort(([, a], [, b]) => b - a);
     
-    // 5. Generate the text for WhatsApp
-    // NEW: Dynamically set the report label in the title
-    const reportTypeLabel = 
-      reportType === 'college' ? 'Colleges' :
-      reportType === 'division' ? 'Divisions' : 'Districts';
-
-    let title = `🏆 *ProfSummit Registration Summary* 🏆\n`;
-    title += `Top ${topN === 0 ? '' : topN} ${reportTypeLabel} (${dateRange === 'today' ? 'Today' : 'All Time'})\n`;
-    
-    // NEW: Don't show the district filter text if it's a district report
-    if (isStateAdmin && selectedDistrict !== 'all' && reportType !== 'district') {
-      title += `_District: ${selectedDistrict}_\n`;
-    }
+    let title = `🌸 *Girls Registration - District Wise* 🌸\n`;
     title += `_View Mode: ${viewMode === 'college' ? 'College' : 'Native'}_\n\n`;
-
+    
     let body = sorted.map(([name, count], index) => `${index + 1}. ${name} - *${count}*`).join('\n');
     if (sorted.length === 0) {
-      body = '_No registrations match the current filters._';
+      body = '_No girls registration data found._';
     }
     
-    const footer = `\n\nTotal Registrations in View: *${dataToProcess.length}*\n_Generated: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}_`;
-    
-    const districts = isStateAdmin ? [...new Set(allData.map(row => viewMode === 'college' ? row.college_district : row.native_district).filter(Boolean))].sort() : [];
+    const footer = `\n\nTotal Girls Registered: *${allGirlsData.length}*\n_Generated: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}_`;
 
-    return {
-      reportText: title + body + footer,
-      districtsForFilter: districts,
-    };
-  }, [allData, reportType, topN, viewMode, selectedDistrict, user, isStateAdmin, dateRange]);
+    setDisplayText(title + body + footer);
+  };
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(reportText);
+    navigator.clipboard.writeText(displayText);
     setCopySuccess('Copied!');
     setTimeout(() => setCopySuccess(''), 2000);
   };
@@ -145,7 +158,6 @@ const ShareCenter: React.FC<{ user: User }> = ({ user }) => {
               <select value={reportType} onChange={(e) => setReportType(e.target.value as 'college' | 'division' | 'district')} className="w-full pl-4 pr-10 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white appearance-none">
                 <option value="college">College-wise</option>
                 <option value="division">Division-wise</option>
-                {/* NEW: Conditional option for State Admin */}
                 {isStateAdmin && (
                   <option value="district">District-wise</option>
                 )}
@@ -192,7 +204,6 @@ const ShareCenter: React.FC<{ user: User }> = ({ user }) => {
             <div>
               <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2"><Map className="w-4 h-4 text-slate-400" /> District</h3>
               <div className="relative">
-                {/* NEW: The select is now disabled when reportType is 'district' */}
                 <select 
                   value={selectedDistrict} 
                   onChange={(e) => setSelectedDistrict(e.target.value)} 
@@ -215,11 +226,27 @@ const ShareCenter: React.FC<{ user: User }> = ({ user }) => {
           Shareable Summary
         </h2>
         <pre className="bg-slate-100 p-4 rounded-xl text-sm text-slate-700 whitespace-pre-wrap font-sans overflow-x-auto">
-          {reportText}
+          {displayText}
         </pre>
+        
+        {/* UPDATED: This entire section is now wrapped in a conditional check */}
+        {isStateAdmin && (
+          <div className="mt-6 pt-6 border-t border-slate-200">
+              <h3 className="text-sm font-semibold text-slate-600 mb-3">Special Reports</h3>
+              <div className="flex">
+                  <button
+                      onClick={generateGirlsDistrictReport}
+                      className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-pink-600 bg-pink-100 rounded-xl hover:bg-pink-200 transition-colors"
+                  >
+                      <Venus size={16}/> Generate Girls District-wise Report
+                  </button>
+              </div>
+          </div>
+        )}
+
         <div className="flex flex-col sm:flex-row gap-4 mt-6">
           <button
-            onClick={() => shareToWhatsApp(reportText)}
+            onClick={() => shareToWhatsApp(displayText)}
             className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-600 rounded-xl shadow-lg hover:opacity-90"
           >
             <Share2 size={16}/> Share to WhatsApp

@@ -211,6 +211,22 @@ export const getAllRegisteredData = async () => {
 };
 
 
+// girls registered
+export const getGirlsRegistration = async () => {
+  try {
+    // Make sure API_BASE_URL is defined in your project
+    const response = await fetch(`${API_BASE_URL}/registrationData/girlsRegistration.php`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Failed to fetch girls registered data:', error);
+    return []; // Return an empty array on failure
+  }
+};
+
+
 
 // evaluate submissions.
 // In src/api.ts
